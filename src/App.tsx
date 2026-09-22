@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Incident, 
   Volunteer, 
   DispatchArc, 
   GlobeLayerState, 
   TelemetryLog, 
-  KPIStats 
+  KPIStats,
+  ExternalSignal
 } from './types';
 import { 
   INITIAL_INCIDENTS, 
@@ -19,6 +20,17 @@ import {
   INITIAL_TELEMETRY_LOGS, 
   INITIAL_STATS 
 } from './data/mockData';
+import { 
+  INITIAL_EXTERNAL_SIGNALS, 
+  CANDIDATE_INCOMING_SIGNALS 
+} from './data/mockSignals';
+import { 
+  playCriticalAlert, 
+  playArrivalChime, 
+  playDispatchPing, 
+  isMuted, 
+  toggleAudioMute 
+} from './utils/audioAlerts';
 import { Header } from './components/header/Header';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { OverviewDashboard } from './components/dashboard/OverviewDashboard';
@@ -26,6 +38,7 @@ import { GlobeOperationalView } from './components/globe/GlobeOperationalView';
 import { SmartMatchEngine } from './components/smart-match/SmartMatchEngine';
 import { FieldReportIngestion } from './components/ingestion/FieldReportIngestion';
 import { TelemetryFeed } from './components/monitoring/TelemetryFeed';
+import { SignalRadarView } from './components/signals/SignalRadarView';
 import { NotificationDrawer, NotificationItem } from './components/notifications/NotificationDrawer';
 
 export default function App() {
@@ -36,6 +49,13 @@ export default function App() {
   const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLog[]>(INITIAL_TELEMETRY_LOGS);
   const [stats, setStats] = useState<KPIStats>(INITIAL_STATS);
   const [selectedIncident, setSelectedIncident] = useState<Incident>(INITIAL_INCIDENTS[0]);
+
+  // Real-Time Signal Stream State
+  const [signals, setSignals] = useState<ExternalSignal[]>(INITIAL_EXTERNAL_SIGNALS);
+  const [isStreaming, setIsStreaming] = useState(true);
+  const [streamSpeed, setStreamSpeed] = useState<'REALTIME' | 'FAST' | 'SURGE'>('REALTIME');
+  const [isAudioMuted, setIsAudioMuted] = useState(isMuted());
+  const nextCandidateIdxRef = useRef(0);
 
   // Navigation & Layout State
   const [activeView, setActiveView] = useState<string>('dashboard');
@@ -88,9 +108,16 @@ export default function App() {
     }));
   };
 
+  const handleToggleAudioMute = () => {
+    const muted = toggleAudioMute();
+    setIsAudioMuted(muted);
+  };
+
   // Dispatch Volunteer action from Smart Match Engine
   const handleDispatchVolunteer = useCallback((incident: Incident, volunteer: Volunteer) => {
-    // 1. Create a dynamic new 3D dispatch arc
+    playDispatchPing();
+
+    // 1. Create a dynamic new 3D dispatch arc with full telemetry
     const newArc: DispatchArc = {
       id: `arc-${Date.now()}`,
       incidentId: incident.id,
@@ -102,7 +129,11 @@ export default function App() {
       status: 'EN_ROUTE',
       color: '#14b8a6', // Teal
       transportMode: 'AIR_CHARTER',
-      progress: 15,
+      progress: 5,
+      speedKnots: 450,
+      altitudeFt: 28000,
+      etaMinutes: Math.max(12, Math.round(volunteer.etaHours * 60)),
+      cargoDescription: `Direct mobilization of ${volunteer.role} with specialized mission kit`,
     };
 
     setDispatchArcs((prev) => [newArc, ...prev]);
@@ -166,6 +197,12 @@ export default function App() {
 
   // Ingest New Incident from Field Report form
   const handleIngestNewIncident = useCallback((newIncident: Incident) => {
+    if (newIncident.urgency === 'CRITICAL') {
+      playCriticalAlert();
+    } else {
+      playDispatchPing();
+    }
+
     setIncidents((prev) => [newIncident, ...prev]);
     setSelectedIncident(newIncident);
 
@@ -207,6 +244,232 @@ export default function App() {
     setNotifications((prev) => [newNotif, ...prev]);
   }, []);
 
+  // Deploy an incoming signal directly to 3D Globe as an active Incident
+  const handleDeploySignalToGlobe = useCallback((signal: ExternalSignal) => {
+    playDispatchPing();
+
+    const coords = signal.stage1.coords || { lat: 20.0, lng: 90.0 };
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const codePrefix = signal.stage2.category.substring(0, 3).toUpperCase();
+    const newCode = `${codePrefix}-2026-${randomSuffix}`;
+
+    const region: Incident['region'] = 
+      coords.lng < -30 ? 'Americas' :
+      coords.lat < 35 && coords.lng > 60 && coords.lng < 150 ? 'Asia-Pacific' :
+      coords.lat > 35 && coords.lng < 50 ? 'Europe' :
+      coords.lng > 30 && coords.lng < 60 && coords.lat > 12 ? 'Middle East' : 'Africa';
+
+    const source: Incident['source'] = 
+      signal.source === 'WHATSAPP' ? 'WhatsApp Hotline' :
+      signal.source === 'TWITTER' ? 'Crowdsourced Drone' :
+      signal.source === 'RSS_GDACS' ? 'Satellite Telemetry' : 'UN OCHA';
+
+    const newIncident: Incident = {
+      id: `inc-sig-${Date.now()}`,
+      code: newCode,
+      title: `${signal.stage1.extractedLocationName}: Emergency Response Required`,
+      category: signal.stage2.category,
+      urgency: signal.stage2.urgency,
+      severityScore: signal.stage2.severityScore,
+      locationName: signal.stage1.extractedLocationName,
+      country: signal.stage1.extractedLocationName.split(',').pop()?.trim() || 'Global Zone',
+      region,
+      coords: coords,
+      timestamp: 'Just now',
+      populationAffected: Math.floor(15000 + Math.random() * 45000),
+      description: signal.stage2.reportSummary || signal.rawText,
+      extractedNeeds: signal.stage2.extractedNeeds,
+      requiredSkills: ['Emergency Paramedic', 'Logistics Fleet Coordinator', 'Swiftwater Rescue'],
+      assignedVolunteersCount: 0,
+      activeMatchesPending: 3,
+      status: 'PENDING_DISPATCH',
+      source,
+    };
+
+    setIncidents((prev) => [newIncident, ...prev]);
+    setSelectedIncident(newIncident);
+
+    // Mark signal as deployed
+    setSignals((prev) =>
+      prev.map((s) =>
+        s.id === signal.id ? { ...s, status: 'DEPLOYED' as const, deployedIncidentId: newIncident.id } : s
+      )
+    );
+
+    // Update stats
+    setStats((prev) => ({
+      ...prev,
+      activeEmergencies: prev.activeEmergencies + 1,
+      criticalEmergencies: signal.stage2.urgency === 'CRITICAL' ? prev.criticalEmergencies + 1 : prev.criticalEmergencies,
+      smartMatchesPending: prev.smartMatchesPending + 3,
+    }));
+
+    // Emit telemetry log
+    const now = new Date();
+    const timeStr = now.toISOString().substring(11, 19) + ' UTC';
+    const newLog: TelemetryLog = {
+      id: `log-${Date.now()}`,
+      timestamp: timeStr,
+      level: signal.stage2.urgency === 'CRITICAL' ? 'CRITICAL' : 'WARN',
+      source: `Signal Bus [${signal.source}]`,
+      message: `Promoted signal to 3D Globe hotspot: [${newCode}] ${newIncident.title}. Immediate matching initiated.`,
+      incidentId: newIncident.id,
+      isNew: true,
+    };
+    setTelemetryLogs((prev) => [newLog, ...prev]);
+
+    // Fly to Globe
+    setActiveView('globe');
+  }, []);
+
+  const handleDismissSignal = useCallback((signalId: string) => {
+    setSignals((prev) => prev.filter((s) => s.id !== signalId));
+  }, []);
+
+  // Trigger Crisis Surge (Simulate sudden cluster of coordinated SOS signals)
+  const handleTriggerSurge = useCallback(() => {
+    playCriticalAlert();
+
+    const timestamp = 'Just now';
+    const surgeSignals: ExternalSignal[] = CANDIDATE_INCOMING_SIGNALS.slice(0, 2).map((cand, idx) => ({
+      ...cand,
+      id: `sig-surge-${Date.now()}-${idx}`,
+      receivedAt: Date.now() - idx * 1000,
+      timestamp,
+      status: 'VERIFIED',
+    }));
+
+    setSignals((prev) => [...surgeSignals, ...prev]);
+
+    const now = new Date();
+    const timeStr = now.toISOString().substring(11, 19) + ' UTC';
+    const newLog: TelemetryLog = {
+      id: `log-${Date.now()}`,
+      timestamp: timeStr,
+      level: 'CRITICAL',
+      source: 'Disaster Ingestion Bus',
+      message: `ALERT: Sudden multi-source signal spike detected! Ingested ${surgeSignals.length} high-urgency SOS packets.`,
+      isNew: true,
+    };
+    setTelemetryLogs((prev) => [newLog, ...prev]);
+
+    const newNotif: NotificationItem = {
+      id: `notif-surge-${Date.now()}`,
+      title: 'DISASTER SIGNAL SPIKE DETECTED',
+      description: 'Rapid cluster of high-severity emergency reports received across WhatsApp and Twitter/X streams.',
+      timestamp: 'Just now',
+      type: 'CRITICAL',
+      isRead: false,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  }, []);
+
+  // Real-Time Background Signal Stream Loop (simulating incoming WebSocket / SSE packets)
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const intervalMs = streamSpeed === 'FAST' ? 4000 : 12000;
+    const timer = setInterval(() => {
+      const candidates = CANDIDATE_INCOMING_SIGNALS;
+      const cand = candidates[nextCandidateIdxRef.current % candidates.length];
+      nextCandidateIdxRef.current += 1;
+
+      const newSig: ExternalSignal = {
+        ...cand,
+        id: `sig-${Date.now()}`,
+        receivedAt: Date.now(),
+        timestamp: 'Just now',
+        status: 'VERIFIED',
+      };
+
+      setSignals((prev) => [newSig, ...prev.slice(0, 25)]);
+
+      if (newSig.stage2.urgency === 'CRITICAL') {
+        playCriticalAlert();
+      }
+
+      setStats((prev) => ({
+        ...prev,
+        telemetryIngestionRate: prev.telemetryIngestionRate + 18,
+      }));
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [isStreaming, streamSpeed]);
+
+  // Real-Time Moving Transit Arcs Engine (progresses in-flight airbridges & vehicles)
+  useEffect(() => {
+    const transitInterval = setInterval(() => {
+      setDispatchArcs((prevArcs) => {
+        let hasChanges = false;
+        const nextArcs = prevArcs.map((arc) => {
+          if (arc.status !== 'EN_ROUTE') return arc;
+
+          hasChanges = true;
+          const delta = 1.2 + Math.random() * 1.5; // realistic progress step
+          const newProgress = Math.min(100, arc.progress + delta);
+          const isTouchdown = newProgress >= 100;
+
+          if (isTouchdown) {
+            playArrivalChime();
+
+            // Volunteer is now on site
+            setVolunteers((prevVols) =>
+              prevVols.map((v) =>
+                v.id === arc.volunteerId ? { ...v, readinessStatus: 'ON_SITE' as const } : v
+              )
+            );
+
+            // Log arrival event
+            const now = new Date();
+            const timeStr = now.toISOString().substring(11, 19) + ' UTC';
+            const newLog: TelemetryLog = {
+              id: `log-arrival-${Date.now()}`,
+              timestamp: timeStr,
+              level: 'SUCCESS',
+              source: 'Airbridge Telemetry',
+              message: `TOUCHDOWN VERIFIED: ${arc.transportMode} has arrived at ${arc.toName}. Personnel & cargo deployed on site.`,
+              incidentId: arc.incidentId,
+              isNew: true,
+            };
+            setTelemetryLogs((prevLogs) => [newLog, ...prevLogs]);
+
+            // Add notification
+            const newNotif: NotificationItem = {
+              id: `notif-arr-${Date.now()}`,
+              title: `MISSION ARRIVAL: ${arc.toName}`,
+              description: `Emergency transit completed. Responders active in relief theater.`,
+              timestamp: 'Just now',
+              type: 'DISPATCH',
+              incidentId: arc.incidentId,
+              isRead: false,
+            };
+            setNotifications((prevNotifs) => [newNotif, ...prevNotifs]);
+
+            return {
+              ...arc,
+              progress: 100,
+              status: 'ARRIVED' as const,
+              speedKnots: 0,
+              etaMinutes: 0,
+            };
+          }
+
+          const currentEta = arc.etaMinutes || 30;
+          return {
+            ...arc,
+            progress: newProgress,
+            etaMinutes: Math.max(1, currentEta - 1),
+          };
+        });
+
+        return hasChanges ? nextArcs : prevArcs;
+      });
+    }, 2500);
+
+    return () => clearInterval(transitInterval);
+  }, []);
+
   // Simulate periodic background satellite ingestion
   const handleSimulateBurst = useCallback(() => {
     const randomIncident = incidents[Math.floor(Math.random() * incidents.length)];
@@ -235,14 +498,6 @@ export default function App() {
     setTelemetryLogs((prev) => [newLog, ...prev.slice(0, 45)]);
   }, [incidents]);
 
-  // Periodic simulation timer
-  useEffect(() => {
-    const interval = setInterval(() => {
-      handleSimulateBurst();
-    }, 28000);
-    return () => clearInterval(interval);
-  }, [handleSimulateBurst]);
-
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleMarkAllRead = () => {
@@ -266,6 +521,10 @@ export default function App() {
         onToggleNotificationDrawer={() => setIsNotificationDrawerOpen(!isNotificationDrawerOpen)}
         activeView={activeView}
         onSelectView={(v) => setActiveView(v)}
+        isAudioMuted={isAudioMuted}
+        onToggleAudioMute={handleToggleAudioMute}
+        signalsCount={signals.length}
+        onTriggerSurge={handleTriggerSurge}
       />
 
       {/* Main Workspace Body with Sidebar */}
@@ -278,6 +537,7 @@ export default function App() {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           criticalCount={stats.criticalEmergencies}
           pendingMatchesCount={stats.smartMatchesPending}
+          signalsCount={signals.length}
         />
 
         {/* Content View Container */}
@@ -319,7 +579,22 @@ export default function App() {
             />
           )}
 
-          {/* View 3: Smart Match Engine View */}
+          {/* View 3: Multi-Source Signal Radar & Ingestion Bus */}
+          {activeView === 'signal-radar' && (
+            <SignalRadarView
+              signals={signals}
+              isStreaming={isStreaming}
+              onToggleStreaming={() => setIsStreaming(!isStreaming)}
+              streamSpeed={streamSpeed}
+              onChangeStreamSpeed={(speed) => setStreamSpeed(speed)}
+              onDeploySignalToGlobe={handleDeploySignalToGlobe}
+              onDismissSignal={handleDismissSignal}
+              onTriggerSurge={handleTriggerSurge}
+              onNavigateToGlobe={() => setActiveView('globe')}
+            />
+          )}
+
+          {/* View 4: Smart Match Engine View */}
           {activeView === 'smart-match' && (
             <SmartMatchEngine
               incidents={incidents}
@@ -331,7 +606,7 @@ export default function App() {
             />
           )}
 
-          {/* View 4: Field Report Ingestion Form */}
+          {/* View 5: Field Report Ingestion Form */}
           {activeView === 'ingestion' && (
             <FieldReportIngestion
               onIngestNewIncident={handleIngestNewIncident}
@@ -342,7 +617,7 @@ export default function App() {
             />
           )}
 
-          {/* View 5: 24/7 Telemetry Logs Deep-Dive Feed */}
+          {/* View 6: 24/7 Telemetry Logs Deep-Dive Feed */}
           {activeView === 'telemetry' && (
             <div className="h-full max-w-4xl mx-auto w-full">
               <TelemetryFeed

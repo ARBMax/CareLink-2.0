@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Bell, Clock } from 'lucide-react';
+import { Activity, Bell, Clock, Volume2, VolumeX, Radio, Zap } from 'lucide-react';
 import { KPIStats } from '../../types';
 
 interface HeaderProps {
@@ -8,6 +8,10 @@ interface HeaderProps {
   onToggleNotificationDrawer: () => void;
   activeView: string;
   onSelectView: (view: string) => void;
+  isAudioMuted: boolean;
+  onToggleAudioMute: () => void;
+  signalsCount?: number;
+  onTriggerSurge?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,13 +19,20 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount,
   onToggleNotificationDrawer,
   onSelectView,
+  isAudioMuted,
+  onToggleAudioMute,
+  signalsCount = 0,
+  onTriggerSurge,
 }) => {
   const [timeUtc, setTimeUtc] = useState('');
+  const [latencyMs, setLatencyMs] = useState(22);
 
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
       setTimeUtc(now.toISOString().substring(11, 19) + ' UTC');
+      // Subtle realistic jitter in network latency
+      setLatencyMs(Math.floor(18 + Math.random() * 8));
     };
 
     updateClock();
@@ -30,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/60 px-5 sm:px-8 flex items-center justify-between gap-6 z-40 shrink-0">
+    <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/60 px-4 sm:px-6 flex items-center justify-between gap-4 z-40 shrink-0">
       {/* Left: Brand */}
       <div 
         onClick={() => onSelectView('dashboard')}
@@ -49,25 +60,72 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Center: Clean Operational State Badge */}
-      <div className="hidden md:flex items-center gap-3">
+      {/* Center: Clean Operational State Badge & Live Stream Bus */}
+      <div className="hidden lg:flex items-center gap-2.5">
         <div className="flex items-center gap-2 px-3 py-1 bg-slate-900/60 border border-slate-800/80 rounded-full text-xs font-mono">
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse-subtle" />
           <span className="text-slate-300 font-semibold">DEFCON 2</span>
           <span className="text-slate-600">•</span>
           <span className="text-slate-400">{stats.criticalEmergencies} Red Zones</span>
         </div>
-        <button
-          onClick={() => onSelectView('telemetry')}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[11px] font-mono text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+
+        {/* Real-Time WebSocket / SSE Bus Indicator */}
+        <div 
+          className="flex items-center gap-2 px-2.5 py-1 bg-slate-900/80 border border-emerald-500/30 rounded-full text-[11px] font-mono text-emerald-300"
+          title="FastAPI WebSocket & SSE Real-time Broadcast Bus"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold">24/7 MONITORING ONLINE</span>
+          <span className="font-semibold">SSE BUS</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-emerald-400/90">{latencyMs}ms</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400 font-mono text-[10px]">48 pkts/s</span>
+        </div>
+
+        {/* Signal Radar Quick Access */}
+        <button
+          onClick={() => onSelectView('signal-radar')}
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 text-sky-300 rounded-full text-[11px] font-mono transition-colors"
+          title="View Live Signal Radar"
+        >
+          <Radio className="w-3 h-3 text-sky-400 animate-spin" style={{ animationDuration: '4s' }} />
+          <span>SIGNALS ({signalsCount})</span>
         </button>
       </div>
 
-      {/* Right: Clock & Notifications */}
-      <div className="flex items-center gap-4">
+      {/* Right: Sound, Clock, Spike Trigger & Notifications */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5">
+        {/* Rapid Spike Simulation Button */}
+        {onTriggerSurge && (
+          <button
+            onClick={onTriggerSurge}
+            id="btn-header-surge"
+            title="Simulate sudden disaster report spike"
+            className="hidden sm:flex items-center gap-1 px-2 py-1 rounded bg-rose-950/60 hover:bg-rose-900/80 border border-rose-600/50 text-rose-300 text-[11px] font-mono transition-all active:scale-95 shadow-sm"
+          >
+            <Zap className="w-3 h-3 text-rose-400" />
+            <span>Spike Sim</span>
+          </button>
+        )}
+
+        {/* Audio Alert Mute Toggle */}
+        <button
+          id="btn-toggle-audio-alerts"
+          onClick={onToggleAudioMute}
+          title={isAudioMuted ? 'Unmute Emergency Radar Alerts' : 'Mute Emergency Audio Alerts'}
+          className={`p-1.5 rounded-lg border transition-colors ${
+            isAudioMuted
+              ? 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300'
+              : 'bg-teal-500/10 border-teal-500/40 text-teal-300 hover:bg-teal-500/20'
+          }`}
+        >
+          {isAudioMuted ? (
+            <VolumeX className="w-4 h-4 text-slate-500" />
+          ) : (
+            <Volume2 className="w-4 h-4 text-teal-400" />
+          )}
+        </button>
+
         {/* UTC Clock */}
         <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono text-slate-400">
           <Clock className="w-3.5 h-3.5 text-slate-500" />

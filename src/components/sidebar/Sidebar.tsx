@@ -5,6 +5,7 @@ import {
   Sparkles, 
   FileText, 
   Radio, 
+  Activity,
   ChevronLeft, 
   ChevronRight,
   Wifi
@@ -17,6 +18,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   criticalCount: number;
   pendingMatchesCount: number;
+  signalsCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -26,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
   criticalCount,
   pendingMatchesCount,
+  signalsCount = 0,
 }) => {
   const navItems = [
     {
@@ -42,6 +45,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-rose-500/10 text-rose-400',
     },
     {
+      id: 'signal-radar',
+      label: 'Signal Radar',
+      icon: Radio,
+      badge: signalsCount > 0 ? `${signalsCount}` : 'LIVE',
+      badgeColor: 'bg-sky-500/10 text-sky-400',
+    },
+    {
       id: 'smart-match',
       label: 'Smart Match',
       icon: Sparkles,
@@ -56,8 +66,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'telemetry',
-      label: '24/7 Live Feed',
-      icon: Radio,
+      label: 'Telemetry Feed',
+      icon: Activity,
       badge: 'LIVE',
       badgeColor: 'bg-emerald-500/10 text-emerald-400',
     },

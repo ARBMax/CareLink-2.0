@@ -69,6 +69,49 @@ export interface DispatchArc {
   color: string;
   transportMode: 'AIR_CHARTER' | 'MEDICAL_HELO' | 'AMPHIBIOUS' | 'GROUND_CONVOY';
   progress: number; // 0 - 100%
+  speedKnots?: number;
+  altitudeFt?: number;
+  etaMinutes?: number;
+  cargoDescription?: string;
+}
+
+export type SignalSource = 'TWITTER' | 'WHATSAPP' | 'NEWS_API' | 'RSS_GDACS';
+
+export interface ExternalSignal {
+  id: string;
+  source: SignalSource;
+  authorOrChannel: string;
+  rawText: string;
+  timestamp: string;
+  receivedAt: number;
+  mediaType?: 'IMAGE' | 'AUDIO_VOICE_NOTE' | 'VIDEO' | 'SEISMIC_TELEMETRY';
+  mediaUrl?: string;
+  
+  // Pipeline Stage 1: Gemini Flash Multimodal Analysis
+  stage1: {
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+    isDisasterRelevant: boolean;
+    extractedLocationName: string;
+    coords?: Coordinates;
+    translatedText?: string;
+    imageTriageSummary?: string;
+    processingTimeMs: number;
+  };
+
+  // Pipeline Stage 2: Groq LLaMA 3 NER & Scoring
+  stage2: {
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'SKIPPED';
+    extractedNeeds: string[];
+    urgency: UrgencyLevel;
+    severityScore: number; // 0 - 100
+    category: IncidentCategory;
+    volunteerMatchScore: number;
+    reportSummary: string;
+    processingTimeMs: number;
+  };
+
+  status: 'INGESTING' | 'TRIAGING' | 'VERIFIED' | 'DISMISSED' | 'DEPLOYED';
+  deployedIncidentId?: string;
 }
 
 export interface TelemetryLog {

@@ -301,6 +301,10 @@ export const INITIAL_DISPATCH_ARCS: DispatchArc[] = [
     color: '#14b8a6', // Teal
     transportMode: 'AIR_CHARTER',
     progress: 68,
+    speedKnots: 460,
+    altitudeFt: 31000,
+    etaMinutes: 42,
+    cargoDescription: '12x Reverse Osmosis Desal Rigs + Pediatric Electrolytes',
   },
   {
     id: 'arc-02',
@@ -314,6 +318,10 @@ export const INITIAL_DISPATCH_ARCS: DispatchArc[] = [
     color: '#38bdf8', // Light Blue / Sky
     transportMode: 'MEDICAL_HELO',
     progress: 82,
+    speedKnots: 165,
+    altitudeFt: 5500,
+    etaMinutes: 18,
+    cargoDescription: 'Heavy Hydraulic Spreaders + Acoustic Void Geophones',
   },
   {
     id: 'arc-03',
@@ -327,6 +335,10 @@ export const INITIAL_DISPATCH_ARCS: DispatchArc[] = [
     color: '#10b981', // Emerald
     transportMode: 'GROUND_CONVOY',
     progress: 100,
+    speedKnots: 0,
+    altitudeFt: 2100,
+    etaMinutes: 0,
+    cargoDescription: 'Ready-to-Use Therapeutic Food (RUTF) Rations',
   }
 ];
 
