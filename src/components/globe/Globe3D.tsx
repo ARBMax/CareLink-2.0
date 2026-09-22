@@ -115,6 +115,27 @@ export const Globe3D: React.FC<Globe3DProps> = ({
     setIsAutoRotating(false);
   }, []);
 
+  // Stable refs to prevent tearing down the 3D WebGL scene when props/states change
+  const isAutoRotatingRef = useRef(isAutoRotating);
+  useEffect(() => {
+    isAutoRotatingRef.current = isAutoRotating;
+  }, [isAutoRotating]);
+
+  const incidentsRef = useRef(incidents);
+  useEffect(() => {
+    incidentsRef.current = incidents;
+  }, [incidents]);
+
+  const onSelectIncidentRef = useRef(onSelectIncident);
+  useEffect(() => {
+    onSelectIncidentRef.current = onSelectIncident;
+  }, [onSelectIncident]);
+
+  const flyToCoordsRef = useRef(flyToCoords);
+  useEffect(() => {
+    flyToCoordsRef.current = flyToCoords;
+  }, [flyToCoords]);
+
   // When selected incident changes externally, smoothly orient globe
   useEffect(() => {
     if (selectedIncidentId) {
@@ -324,11 +345,11 @@ export const Globe3D: React.FC<Globe3DProps> = ({
           vec4 nightColor = texture2D(nightTexture, vUv);
           vec4 specData = texture2D(specularTexture, vUv);
 
-          // Topographical Bump Relief Perturbation
+          // Topographical Bump Relief Perturbation (smoothly clamped to eliminate edge artifacts)
           float h0 = texture2D(bumpTexture, vUv).r;
           float hU = texture2D(bumpTexture, vUv + vec2(0.0008, 0.0)).r;
           float hV = texture2D(bumpTexture, vUv + vec2(0.0, 0.0008)).r;
-          float bumpSlope = (hU - h0) * 10.0 + (hV - h0) * 10.0;
+          float bumpSlope = clamp((hU - h0) * 5.0 + (hV - h0) * 5.0, -0.4, 0.4);
 
           vec3 normal = normalize(vNormal);
           vec3 sunDir = normalize(sunDirection);
@@ -353,7 +374,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
           vec3 twilightColor = vec3(0.92, 0.42, 0.12) * twilightFactor * 0.55;
 
           // Day diffuse illumination with mountain relief
-          float diffuse = max(0.0, sunDot + bumpSlope * 0.4);
+          float diffuse = max(0.0, sunDot + bumpSlope * 0.35);
           vec3 dayLight = vec3(0.07) + vec3(0.93) * diffuse;
 
           // Ocean Specular Glint (water shines in direct sunlight, continents remain matte)
@@ -430,8 +451,8 @@ export const Globe3D: React.FC<Globe3DProps> = ({
     cloudsMeshRef.current = cloudsMesh;
     cloudsShaderMatRef.current = cloudsShaderMat;
 
-    // 6. Inner Atmospheric Limb Sheen (Fresnel Rim)
-    const innerRimGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.003, 48, 48);
+    // 6. Inner Atmospheric Limb Sheen (Fresnel Rim with matching 64x64 tessellation)
+    const innerRimGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.006, 64, 64);
     const innerRimMat = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vNormal;
@@ -454,6 +475,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       `,
       blending: THREE.AdditiveBlending,
       transparent: true,
+      depthTest: true,
       depthWrite: false,
     });
     const innerRimMesh = new THREE.Mesh(innerRimGeo, innerRimMat);
@@ -563,8 +585,12 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         const hit = intersects[0].object;
         const incidentData = hit.userData.incident as Incident | undefined;
         if (incidentData) {
-          onSelectIncident(incidentData);
-          flyToCoords(incidentData.coords.lat, incidentData.coords.lng);
+          if (onSelectIncidentRef.current) {
+            onSelectIncidentRef.current(incidentData);
+          }
+          if (flyToCoordsRef.current) {
+            flyToCoordsRef.current(incidentData.coords.lat, incidentData.coords.lng);
+          }
         }
       }
     };
@@ -607,8 +633,8 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       const delta = clock.getDelta();
       const elapsedTime = clock.getElapsedTime();
 
-      // Smooth auto-rotation if enabled & not dragging
-      if (isAutoRotating && !isDraggingRef.current) {
+      // Smooth auto-rotation if enabled & not dragging (reads stable ref)
+      if (isAutoRotatingRef.current && !isDraggingRef.current) {
         targetRotationRef.current.y += 0.0014;
       }
 
@@ -662,22 +688,25 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         const w = overlay.clientWidth;
         const h = overlay.clientHeight;
 
-        incidents.forEach((inc) => {
+        // Accurate geometric horizon limit: point is occluded when z < R^2 / D
+        const horizonZ = (GLOBE_RADIUS * GLOBE_RADIUS) / Math.max(cameraDistanceRef.current, GLOBE_RADIUS + 5);
+
+        incidentsRef.current.forEach((inc) => {
           const pinEl = document.getElementById(`pinpoint-${inc.id}`);
           if (!pinEl) return;
 
-          const pin3D = latLngToVector3(inc.coords.lat, inc.coords.lng, GLOBE_RADIUS + 8);
+          const pin3D = latLngToVector3(inc.coords.lat, inc.coords.lng, GLOBE_RADIUS + 6);
           tempProjVec.copy(pin3D);
           tempProjVec.applyMatrix4(globeGroup.matrixWorld);
 
-          const isFront = tempProjVec.z > 10;
+          const isFront = tempProjVec.z > horizonZ;
 
           if (isFront) {
             tempProjVec.project(camera);
             const screenX = (tempProjVec.x * 0.5 + 0.5) * w;
             const screenY = (-tempProjVec.y * 0.5 + 0.5) * h;
 
-            pinEl.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+            pinEl.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -100%)`;
             pinEl.style.opacity = '1';
             pinEl.style.pointerEvents = 'auto';
           } else {
@@ -710,7 +739,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       haloGeo.dispose();
       haloMat.dispose();
     };
-  }, [isAutoRotating, onSelectIncident, flyToCoords, incidents, currentSolarInfo]);
+  }, []);
 
   // Handle Clouds Toggle
   useEffect(() => {
@@ -949,7 +978,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
                 onSelectIncident(incident);
                 flyToCoords(incident.coords.lat, incident.coords.lng);
               }}
-              className="absolute top-0 left-0 -translate-x-1/2 -translate-y-full mb-1 cursor-pointer select-none transition-opacity duration-150 group/pin"
+              className="absolute top-0 left-0 cursor-pointer select-none group/pin will-change-transform"
             >
               {isSelected ? (
                 /* Selected Pinpoint Reticle & Badge */
