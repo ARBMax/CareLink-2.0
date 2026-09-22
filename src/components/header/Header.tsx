@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Bell, Clock, Volume2, VolumeX, Radio, Zap } from 'lucide-react';
+import { Activity, Bell, Clock, Volume2, VolumeX, Radio, Zap, Sparkles } from 'lucide-react';
 import { KPIStats } from '../../types';
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ interface HeaderProps {
   onToggleAudioMute: () => void;
   signalsCount?: number;
   onTriggerSurge?: () => void;
+  onReplayStartup?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleAudioMute,
   signalsCount = 0,
   onTriggerSurge,
+  onReplayStartup,
 }) => {
   const [timeUtc, setTimeUtc] = useState('');
   const [latencyMs, setLatencyMs] = useState(22);
@@ -105,6 +107,19 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Zap className="w-3 h-3 text-rose-400" />
             <span>Spike Sim</span>
+          </button>
+        )}
+
+        {/* Replay Startup Screen Animation Button */}
+        {onReplayStartup && (
+          <button
+            id="btn-header-replay-intro"
+            onClick={onReplayStartup}
+            title="Replay Cinematic Startup Screen"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-500/40 text-cyan-300 text-[11px] font-mono transition-all active:scale-95 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+          >
+            <Sparkles className="w-3 h-3 text-cyan-400" />
+            <span>Intro</span>
           </button>
         )}
 

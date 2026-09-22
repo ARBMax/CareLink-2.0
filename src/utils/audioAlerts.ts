@@ -149,3 +149,92 @@ export function playDispatchPing() {
     osc.stop(now + 0.15);
   } catch {}
 }
+
+/**
+ * Cinematic startup swell & sunrise chime (Web Audio API)
+ * Plays an ambient low-frequency cosmic rumble with layered resonant harmonic pads
+ * and a high shimmer chime when the CareLink logo ignites.
+ */
+export function playStartupSwell() {
+  if (isAudioMuted) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    
+    // 1. Cosmic deep sub-bass drone (smooth lowpass filtered saw)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    const subFilter = ctx.createBiquadFilter();
+
+    subOsc.type = 'sawtooth';
+    subOsc.frequency.setValueAtTime(55, now); // A1 note
+    subFilter.type = 'lowpass';
+    subFilter.frequency.setValueAtTime(90, now);
+    subFilter.frequency.exponentialRampToValueAtTime(320, now + 3.0);
+
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.15, now + 1.8);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 5.5);
+
+    subOsc.connect(subFilter);
+    subFilter.connect(subGain);
+    subGain.connect(ctx.destination);
+
+    subOsc.start(now);
+    subOsc.stop(now + 5.8);
+
+    // 2. Luminous harmonic triad pad (A3, C#4, E4, B4)
+    const padFreqs = [220, 277.18, 329.63, 493.88];
+    padFreqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(freq, now);
+      filter.Q.setValueAtTime(3, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.06, now + 2.0 + i * 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 6.0);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 6.2);
+    });
+
+    // 3. Shimmer Chime at T+3.2s (when logo electric aura ignites)
+    const chimeTimer = setTimeout(() => {
+      if (isAudioMuted || !ctx || ctx.state === 'closed') return;
+      try {
+        const chimeNow = ctx.currentTime;
+        const chimeFreqs = [880, 1108.73, 1318.51, 1760]; // A major 9 high shimmer
+        chimeFreqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, chimeNow + idx * 0.05);
+
+          gain.gain.setValueAtTime(0.08, chimeNow + idx * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, chimeNow + idx * 0.05 + 1.2);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(chimeNow + idx * 0.05);
+          osc.stop(chimeNow + idx * 0.05 + 1.3);
+        });
+      } catch {}
+    }, 3200);
+
+    return () => clearTimeout(chimeTimer);
+  } catch {}
+}

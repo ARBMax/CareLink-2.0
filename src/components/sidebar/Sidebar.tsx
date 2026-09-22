@@ -19,6 +19,7 @@ interface SidebarProps {
   criticalCount: number;
   pendingMatchesCount: number;
   signalsCount?: number;
+  onReplayStartup?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   criticalCount,
   pendingMatchesCount,
   signalsCount = 0,
+  onReplayStartup,
 }) => {
   const navItems = [
     {
@@ -132,6 +134,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* Replay Intro Screen */}
+      {onReplayStartup && (
+        <div className="p-2 border-t border-slate-800/40">
+          <button
+            onClick={onReplayStartup}
+            id="btn-sidebar-replay-intro"
+            className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-left text-cyan-400 hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors text-xs font-mono"
+            title={isCollapsed ? 'Replay Startup Intro' : undefined}
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+            {!isCollapsed && <span className="truncate">Startup Intro</span>}
+          </button>
+        </div>
+      )}
 
       {/* Minimal Footer Status */}
       <div className="p-3 border-t border-slate-800/40 text-slate-500 text-[11px] font-mono flex items-center gap-2">

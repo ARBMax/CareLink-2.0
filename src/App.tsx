@@ -40,8 +40,12 @@ import { FieldReportIngestion } from './components/ingestion/FieldReportIngestio
 import { TelemetryFeed } from './components/monitoring/TelemetryFeed';
 import { SignalRadarView } from './components/signals/SignalRadarView';
 import { NotificationDrawer, NotificationItem } from './components/notifications/NotificationDrawer';
+import { StartupScreen } from './components/startup/StartupScreen';
 
 export default function App() {
+  // Application Startup Screen
+  const [showStartupScreen, setShowStartupScreen] = useState(true);
+
   // Application State
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [volunteers, setVolunteers] = useState<Volunteer[]>(INITIAL_VOLUNTEERS);
@@ -525,6 +529,7 @@ export default function App() {
         onToggleAudioMute={handleToggleAudioMute}
         signalsCount={signals.length}
         onTriggerSurge={handleTriggerSurge}
+        onReplayStartup={() => setShowStartupScreen(true)}
       />
 
       {/* Main Workspace Body with Sidebar */}
@@ -538,6 +543,7 @@ export default function App() {
           criticalCount={stats.criticalEmergencies}
           pendingMatchesCount={stats.smartMatchesPending}
           signalsCount={signals.length}
+          onReplayStartup={() => setShowStartupScreen(true)}
         />
 
         {/* Content View Container */}
@@ -639,6 +645,11 @@ export default function App() {
         onMarkAllRead={handleMarkAllRead}
         onSelectIncidentById={handleSelectIncidentById}
       />
+
+      {/* Cinematic Orbital Startup Screen */}
+      {showStartupScreen && (
+        <StartupScreen onEnterApp={() => setShowStartupScreen(false)} />
+      )}
     </div>
   );
 }
