@@ -1,0 +1,6 @@
+{
+  "name": "CareLink",
+  "description": "Humanitarian intelligence platform and autonomous Decision OS for real-time disaster response and volunteer dispatch coordination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
