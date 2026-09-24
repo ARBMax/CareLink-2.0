@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+carelink-backend/venv/
+carelink-backend/__pycache__/
+

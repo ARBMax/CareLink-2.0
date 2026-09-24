@@ -8,6 +8,7 @@ interface HeaderProps {
   onToggleNotificationDrawer: () => void;
   activeView: string;
   onSelectView: (view: string) => void;
+  isBackendConnected?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,7 +16,9 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount,
   onToggleNotificationDrawer,
   onSelectView,
+  isBackendConnected = false,
 }) => {
+
   const [timeUtc, setTimeUtc] = useState('');
 
   useEffect(() => {
@@ -59,12 +62,17 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
         <button
           onClick={() => onSelectView('telemetry')}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-[11px] font-mono text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono transition-colors ${
+            isBackendConnected 
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
+              : 'bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+          }`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold">24/7 MONITORING ONLINE</span>
+          <span className={`w-1.5 h-1.5 rounded-full ${isBackendConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+          <span className="font-semibold">{isBackendConnected ? 'BACKEND: CONNECTED' : 'BACKEND: STANDALONE'}</span>
         </button>
       </div>
+
 
       {/* Right: Clock & Notifications */}
       <div className="flex items-center gap-4">

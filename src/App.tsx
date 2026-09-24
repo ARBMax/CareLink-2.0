@@ -19,6 +19,15 @@ import {
   INITIAL_TELEMETRY_LOGS, 
   INITIAL_STATS 
 } from './data/mockData';
+import { 
+  fetchIncidents, 
+  fetchVolunteers, 
+  fetchDispatchArcs, 
+  fetchStats, 
+  createDispatch as apiCreateDispatch,
+  createIncident as apiCreateIncident,
+} from './services/api';
+import { useCareLinkWebSocket } from './hooks/useCareLinkWebSocket';
 import { Header } from './components/header/Header';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { OverviewDashboard } from './components/dashboard/OverviewDashboard';
@@ -36,6 +45,7 @@ export default function App() {
   const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLog[]>(INITIAL_TELEMETRY_LOGS);
   const [stats, setStats] = useState<KPIStats>(INITIAL_STATS);
   const [selectedIncident, setSelectedIncident] = useState<Incident>(INITIAL_INCIDENTS[0]);
+
 
   // Navigation & Layout State
   const [activeView, setActiveView] = useState<string>('dashboard');
@@ -81,6 +91,87 @@ export default function App() {
     }
   ]);
 
+  // ── Live Backend Connection & Real-Time WebSocket ───────────────────────────
+  const { isConnected: isBackendConnected } = useCareLinkWebSocket({
+    onNewIncident: useCallback((incident: Incident) => {
+      setIncidents((prev) => [incident, ...prev.filter((i) => i.id !== incident.id)]);
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          title: `NEW INCIDENT: ${incident.code}`,
+          description: `${incident.title} (${incident.country})`,
+          timestamp: 'Just now',
+          type: 'CRITICAL',
+          incidentId: incident.id,
+          isRead: false,
+        },
+        ...prev,
+      ]);
+    }, []),
+    onUpdateIncident: useCallback((incident: Incident) => {
+      setIncidents((prev) => prev.map((i) => (i.id === incident.id ? incident : i)));
+    }, []),
+    onNewLog: useCallback((log: TelemetryLog) => {
+      setTelemetryLogs((prev) => [log, ...prev.slice(0, 100)]);
+    }, []),
+    onNewDispatch: useCallback((arc: DispatchArc) => {
+      setDispatchArcs((prev) => [arc, ...prev.filter((a) => a.id !== arc.id)]);
+    }, []),
+    onDispatchProgress: useCallback((data: { arc_id: string; progress_pct: number; status?: string }) => {
+      setDispatchArcs((prev) =>
+        prev.map((a) =>
+          a.id === data.arc_id
+            ? { ...a, progress: data.progress_pct, status: (data.status as any) || a.status }
+            : a
+        )
+      );
+    }, []),
+    onVolunteerStatus: useCallback((data: { volunteer_id: string; readiness_status: string }) => {
+      setVolunteers((prev) =>
+        prev.map((v) =>
+          v.id === data.volunteer_id
+            ? { ...v, readinessStatus: data.readiness_status as any }
+            : v
+        )
+      );
+    }, []),
+    onStatsUpdate: useCallback((newStats: KPIStats) => {
+      setStats((prev) => ({ ...prev, ...newStats }));
+    }, []),
+  });
+
+  // Fetch initial data from backend API on mount
+  useEffect(() => {
+    async function loadBackendData() {
+      try {
+        const [backendIncidents, backendVolunteers, backendArcs, backendStats] = await Promise.allSettled([
+          fetchIncidents(),
+          fetchVolunteers(),
+          fetchDispatchArcs(),
+          fetchStats(),
+        ]);
+
+        if (backendIncidents.status === 'fulfilled' && backendIncidents.value.length > 0) {
+          setIncidents(backendIncidents.value);
+          setSelectedIncident(backendIncidents.value[0]);
+        }
+        if (backendVolunteers.status === 'fulfilled' && backendVolunteers.value.length > 0) {
+          setVolunteers(backendVolunteers.value);
+        }
+        if (backendArcs.status === 'fulfilled' && backendArcs.value.length > 0) {
+          setDispatchArcs(backendArcs.value);
+        }
+        if (backendStats.status === 'fulfilled') {
+          setStats(backendStats.value);
+        }
+      } catch (err) {
+        console.warn('Backend API connection notice (using initial state):', err);
+      }
+    }
+
+    loadBackendData();
+  }, []);
+
   const handleToggleLayer = (layerKey: keyof GlobeLayerState) => {
     setLayerState((prev) => ({
       ...prev,
@@ -90,6 +181,7 @@ export default function App() {
 
   // Dispatch Volunteer action from Smart Match Engine
   const handleDispatchVolunteer = useCallback((incident: Incident, volunteer: Volunteer) => {
+
     // 1. Create a dynamic new 3D dispatch arc
     const newArc: DispatchArc = {
       id: `arc-${Date.now()}`,
@@ -162,7 +254,13 @@ export default function App() {
       isRead: false,
     };
     setNotifications((prev) => [newNotif, ...prev]);
+
+    // Persist dispatch arc to FastAPI backend
+    apiCreateDispatch(incident.id, volunteer.id, 'AIR_CHARTER').catch((err) =>
+      console.warn('Dispatch API call error (optimistic update kept):', err)
+    );
   }, []);
+
 
   // Ingest New Incident from Field Report form
   const handleIngestNewIncident = useCallback((newIncident: Incident) => {
@@ -205,6 +303,11 @@ export default function App() {
       isRead: false,
     };
     setNotifications((prev) => [newNotif, ...prev]);
+
+    // Persist incident to FastAPI backend
+    apiCreateIncident(newIncident).catch((err) =>
+      console.warn('Create incident API call error (optimistic update kept):', err)
+    );
   }, []);
 
   // Simulate periodic background satellite ingestion
@@ -266,7 +369,9 @@ export default function App() {
         onToggleNotificationDrawer={() => setIsNotificationDrawerOpen(!isNotificationDrawerOpen)}
         activeView={activeView}
         onSelectView={(v) => setActiveView(v)}
+        isBackendConnected={isBackendConnected}
       />
+
 
       {/* Main Workspace Body with Sidebar */}
       <div className="flex-1 flex overflow-hidden relative">

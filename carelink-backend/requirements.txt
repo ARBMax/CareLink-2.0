@@ -1,0 +1,38 @@
+# ─── Web Framework ────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12        # For file/form uploads
+
+# ─── AI Services ──────────────────────────────────────────────────────────────
+google-genai==1.16.0            # Gemini Flash (Stage 1 ingestion)
+groq==0.13.1                    # Groq LLaMA 3 (Stage 2 processing)
+
+# ─── Firebase ─────────────────────────────────────────────────────────────────
+firebase-admin==6.6.0           # Firestore + RTDB + Auth
+
+# ─── Data Validation & Settings ───────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# ─── HTTP Client (for scrapers) ───────────────────────────────────────────────
+httpx==0.28.1                   # Async HTTP client
+aiohttp==3.11.10                # For streaming Twitter API
+
+# ─── Task Scheduling ──────────────────────────────────────────────────────────
+apscheduler==3.10.4             # Periodic scraping jobs
+
+# ─── Utility ──────────────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0  # JWT tokens (future auth)
+passlib[bcrypt]==1.7.4
+geopy==2.4.1                    # Geocoding / distance calculations
+feedparser==6.0.11              # RSS feed parsing
+tweepy==4.14.0                  # Twitter API v2
+
+# ─── Logging & Monitoring ─────────────────────────────────────────────────────
+loguru==0.7.3
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx                           # Also used for TestClient
