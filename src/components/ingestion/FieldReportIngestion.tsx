@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Incident, UrgencyLevel, IncidentCategory } from '../../types';
 import { 
   Radio, 
@@ -6,10 +6,8 @@ import {
   CheckCircle2, 
   UploadCloud, 
   Send, 
-  Flame, 
-  Waves, 
-  Mountain,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 
 interface FieldReportIngestionProps {
@@ -17,66 +15,41 @@ interface FieldReportIngestionProps {
   onNavigateToSmartMatch?: (incident: Incident) => void;
 }
 
-const PRESET_REPORTS = [
-  {
-    title: 'Flash Inundation in Surigao Coastal Village',
-    text: 'Surigao del Sur river breached sea wall following 24hr torrential downpours. Approximately 1,800 families trapped on roofs in Barangay San Roque. Electric grid severed. Immediate need for Rigid Inflatable Boats, emergency pediatric rehydration salts, and portable solar SATCOM relay before nightfall.',
-    coords: { lat: 8.5167, lng: 126.1500 },
-    country: 'Philippines',
-    region: 'Asia-Pacific' as const,
-    urgency: 'CRITICAL' as UrgencyLevel,
-    category: 'FLOOD' as IncidentCategory,
-    icon: Waves,
-  },
-  {
-    title: 'Seismic Landslide blocking Andean Mountain Artery',
-    text: 'Seismic tremor Mw 6.2 triggered massive debris flow across Route 30 between Cuenca and Loja. Multiple transport minibuses swept into ravine. Search and rescue urgently requires acoustic void listening detectors, canine handlers, and heavy hydraulic cutting gear.',
-    coords: { lat: -3.5000, lng: -79.2000 },
-    country: 'Ecuador',
-    region: 'Americas' as const,
-    urgency: 'CRITICAL' as UrgencyLevel,
-    category: 'EARTHQUAKE' as IncidentCategory,
-    icon: Mountain,
-  },
-  {
-    title: 'Wildfire Ember Storm approaching Evacuation Camp',
-    text: 'High-speed dry katabatic winds shifting Peloponnese wildfire front toward Sector B transitional center. 900 individuals require smoke inhalation triage. Urgent need for N95 respirators, Class A flame retardant blankets, and off-road 4x4 evacuation ambulances.',
-    coords: { lat: 38.2466, lng: 21.7346 },
-    country: 'Greece',
-    region: 'Europe' as const,
-    urgency: 'HIGH' as UrgencyLevel,
-    category: 'WILDFIRE' as IncidentCategory,
-    icon: Flame,
-  }
-];
+
 
 export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
   onIngestNewIncident,
   onNavigateToSmartMatch,
 }) => {
-  const [reportText, setReportText] = useState(PRESET_REPORTS[0].text);
-  const [title, setTitle] = useState(PRESET_REPORTS[0].title);
-  const [lat, setLat] = useState(PRESET_REPORTS[0].coords.lat.toString());
-  const [lng, setLng] = useState(PRESET_REPORTS[0].coords.lng.toString());
-  const [country, setCountry] = useState(PRESET_REPORTS[0].country);
-  const [region, setRegion] = useState<'Asia-Pacific' | 'Americas' | 'Africa' | 'Middle East' | 'Europe'>(PRESET_REPORTS[0].region);
-  const [urgency, setUrgency] = useState<UrgencyLevel>(PRESET_REPORTS[0].urgency);
-  const [category, setCategory] = useState<IncidentCategory>(PRESET_REPORTS[0].category);
-  const [mediaUploaded, setMediaUploaded] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [title, setTitle] = useState('');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [country, setCountry] = useState('');
+  const [region, setRegion] = useState<'Asia-Pacific' | 'Americas' | 'Africa' | 'Middle East' | 'Europe'>('Asia-Pacific');
+  const [urgency, setUrgency] = useState<UrgencyLevel>('CRITICAL');
+  const [category, setCategory] = useState<IncidentCategory>('FLOOD');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [ingestedSuccessIncident, setIngestedSuccessIncident] = useState<Incident | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Simulated AI Structured Extraction state
   const [aiInsights, setAiInsights] = useState({
-    extractedEntities: ['Surigao del Sur', '1,800 Families (approx 9,000 civilians)', 'Barangay San Roque'],
-    extractedNeeds: ['Rigid Inflatable Boats (RIB)', 'Pediatric Rehydration Salts', 'Portable Solar SATCOM Relay'],
-    extractedSkills: ['Swiftwater Rescue', 'Emergency Paramedic', 'SATCOM Field Tech'],
-    threatScore: 92,
-    sourceConfidence: 99.4,
+    extractedEntities: [] as string[],
+    extractedNeeds: [] as string[],
+    extractedSkills: [] as string[],
+    threatScore: 0,
+    sourceConfidence: 0,
   });
 
   // Re-run mock AI NLP extraction when text changes
   useEffect(() => {
+    if (!reportText.trim()) {
+      setIsParsing(false);
+      setAiInsights({ extractedEntities: [], extractedNeeds: [], extractedSkills: [], threatScore: 0, sourceConfidence: 0 });
+      return;
+    }
     setIsParsing(true);
     const timer = setTimeout(() => {
       const textLower = reportText.toLowerCase();
@@ -105,20 +78,15 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
         skills.push('Emergency Telecom Engineer');
       }
 
-      if (needs.length === 0) {
-        needs.push('Emergency Shelter Tarps', 'Ready-to-Eat Food Rations');
-        skills.push('Disaster Logistics Coordinator');
-      }
-
       if (country) entities.push(country);
       if (title) entities.push(title.split(' ')[0] + ' Sector');
 
       setAiInsights({
-        extractedEntities: entities.length > 0 ? entities : ['Unidentified Sector Zone'],
+        extractedEntities: entities,
         extractedNeeds: needs,
         extractedSkills: skills,
         threatScore: urgency === 'CRITICAL' ? 94 : urgency === 'HIGH' ? 82 : urgency === 'MEDIUM' ? 64 : 45,
-        sourceConfidence: 99.2,
+        sourceConfidence: needs.length > 0 ? 99.2 : 0,
       });
       setIsParsing(false);
     }, 350);
@@ -126,16 +94,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
     return () => clearTimeout(timer);
   }, [reportText, title, country, urgency]);
 
-  const loadPreset = (preset: typeof PRESET_REPORTS[0]) => {
-    setTitle(preset.title);
-    setReportText(preset.text);
-    setLat(preset.coords.lat.toString());
-    setLng(preset.coords.lng.toString());
-    setCountry(preset.country);
-    setRegion(preset.region);
-    setUrgency(preset.urgency);
-    setCategory(preset.category);
-  };
+
 
   const handleIngest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,39 +131,18 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
 
   return (
     <div className="flex flex-col h-full gap-5">
-      {/* Top Banner & Fast Preset Scenarios */}
-      <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
-            <Radio className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-100 font-mono tracking-wide">
-              FIELD REPORT INGESTION
-            </h2>
-            <p className="text-xs text-slate-400">
-              Input field transcripts, emergency SMS, or sensor data for automated analysis
-            </p>
-          </div>
+      {/* Top Banner */}
+      <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
+          <Radio className="w-5 h-5" />
         </div>
-
-        {/* Rapid Preset Selector Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-slate-400 mr-1 hidden sm:inline">Presets:</span>
-          {PRESET_REPORTS.map((p, idx) => {
-            const Icon = p.icon;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => loadPreset(p)}
-                className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition-colors flex items-center gap-1.5 font-mono"
-              >
-                <Icon className="w-3.5 h-3.5 text-teal-400" />
-                <span>Scenario #{idx + 1}</span>
-              </button>
-            );
-          })}
+        <div>
+          <h2 className="text-sm font-bold text-slate-100 font-mono tracking-wide">
+            FIELD REPORT INGESTION
+          </h2>
+          <p className="text-xs text-slate-400">
+            Input field transcripts, emergency SMS, or sensor data for automated analysis
+          </p>
         </div>
       </div>
 
@@ -382,17 +320,36 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
             <label className="block text-[11px] font-mono text-slate-400 mb-1">
               ATTACHMENT (OPTIONAL)
             </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".tiff,.tif,.jpg,.jpeg,.png,.pdf,.csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setAttachedFile(file);
+              }}
+            />
             <div
-              onClick={() => setMediaUploaded(!mediaUploaded)}
-              className="border border-dashed border-slate-700 hover:border-slate-700 bg-slate-900/40 rounded-lg p-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-3"
+              onClick={() => fileInputRef.current?.click()}
+              className="border border-dashed border-slate-700 hover:border-teal-500/50 bg-slate-900/40 rounded-lg p-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-3 group"
             >
-              <UploadCloud className="w-5 h-5 text-teal-400" />
-              <div className="text-left text-xs">
-                <span className="text-slate-300">
-                  {mediaUploaded ? 'Drone_Recon_0041.tiff attached' : 'Upload geotagged field photo or telemetry file'}
+              <UploadCloud className="w-5 h-5 text-teal-400 group-hover:scale-110 transition-transform" />
+              <div className="text-left text-xs flex-1 min-w-0">
+                <span className="text-slate-300 block truncate">
+                  {attachedFile ? attachedFile.name : 'Upload geotagged field photo or telemetry file'}
                 </span>
-                <span className="block text-[10px] text-slate-500">Supports GeoTIFF, JPG, PNG</span>
+                <span className="block text-[10px] text-slate-500">Supports GeoTIFF, JPG, PNG, PDF, CSV</span>
               </div>
+              {attachedFile && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setAttachedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                  className="text-slate-500 hover:text-rose-400 transition-colors shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
