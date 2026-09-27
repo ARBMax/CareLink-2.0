@@ -18,7 +18,7 @@ export const GlobeControls: React.FC<GlobeControlsProps> = ({
   arcsCount,
 }) => {
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
       {/* Layer Toggles */}
       <div className="flex items-center gap-2">
         <span className="text-slate-400 font-mono text-[11px] uppercase mr-1">
@@ -32,7 +32,7 @@ export const GlobeControls: React.FC<GlobeControlsProps> = ({
           className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
             layerState.disasterZones
               ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 font-medium'
-              : 'bg-transparent border-slate-800 text-slate-500 hover:text-slate-300'
+              : 'bg-transparent border-slate-700 text-slate-500 hover:text-slate-300'
           }`}
         >
           <ShieldAlert className="w-3.5 h-3.5" />
@@ -47,7 +47,7 @@ export const GlobeControls: React.FC<GlobeControlsProps> = ({
           className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
             layerState.volunteerDensity
               ? 'bg-teal-500/10 border-teal-500/30 text-teal-300 font-medium'
-              : 'bg-transparent border-slate-800 text-slate-500 hover:text-slate-300'
+              : 'bg-transparent border-slate-700 text-slate-500 hover:text-slate-300'
           }`}
         >
           <Users className="w-3.5 h-3.5" />
@@ -62,7 +62,7 @@ export const GlobeControls: React.FC<GlobeControlsProps> = ({
           className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 ${
             layerState.supplyRouteArcs
               ? 'bg-sky-500/10 border-sky-500/30 text-sky-300 font-medium'
-              : 'bg-transparent border-slate-800 text-slate-500 hover:text-slate-300'
+              : 'bg-transparent border-slate-700 text-slate-500 hover:text-slate-300'
           }`}
         >
           <Navigation className="w-3.5 h-3.5" />

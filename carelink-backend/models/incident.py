@@ -41,6 +41,7 @@ class IncidentRegion(str, Enum):
     AFRICA       = "Africa"
     MIDDLE_EAST  = "Middle East"
     EUROPE       = "Europe"
+    GLOBAL       = "Global"
 
 
 class IncidentSource(str, Enum):
@@ -128,6 +129,7 @@ class IncidentCreate(BaseModel):
     source:               IncidentSource = IncidentSource.MANUAL
     source_url:           Optional[str] = None
     media_urls:           list[str] = []
+    timestamp:            Optional[datetime] = None
 
 
 class IncidentStatusUpdate(BaseModel):

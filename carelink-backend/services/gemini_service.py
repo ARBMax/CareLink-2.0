@@ -57,21 +57,13 @@ class GeminiIngestionService:
     Gemini Flash handles high-volume, ambiguous, multimodal input.
     """
 
-    MODEL = "gemini-2.0-flash"
+    MODEL = "gemini-3.8-flash"
     RELEVANCE_THRESHOLD = 0.6   # Discard posts below this confidence
 
     def __init__(self):
         settings = get_settings()
-        if settings.gemini_api_key and not settings.gemini_api_key.startswith("your_"):
-            try:
-                self.client = genai.Client(api_key=settings.gemini_api_key)
-                logger.info("✅ GeminiIngestionService initialised with model: {}", self.MODEL)
-            except Exception as exc:
-                logger.warning("Gemini client initialization failed: {}. Running in mock mode.", exc)
-                self.client = None
-        else:
-            logger.warning("⚠️  GEMINI_API_KEY not configured. Running GeminiIngestionService in mock mode.")
-            self.client = None
+        logger.warning("⚠️  Bypassing Gemini due to rate limits. Routing directly to Groq.")
+        self.client = None
 
     def _safe_json(self, text: str) -> dict:
 
@@ -120,22 +112,53 @@ class GeminiIngestionService:
         Returns structured data for Groq to process in Stage 2.
         """
         if self.client is None:
-            signals = [
-                RawSignal(
+            # ── Smart mock: extract location/category hints from actual post text ──
+            signals = []
+            for p in posts:
+                p_lower = p.lower()
+
+                # Detect disaster type from post content
+                dtype = IncidentCategory.FLOOD  # default
+                if any(k in p_lower for k in ["earthquake", "quake", "seismic", "tremor"]):
+                    dtype = IncidentCategory.EARTHQUAKE
+                elif any(k in p_lower for k in ["cyclone", "hurricane", "typhoon", "storm surge"]):
+                    dtype = IncidentCategory.CYCLONE
+                elif any(k in p_lower for k in ["wildfire", "fire", "blaze", "burning"]):
+                    dtype = IncidentCategory.WILDFIRE
+                elif any(k in p_lower for k in ["drought", "famine", "hunger", "food crisis"]):
+                    dtype = IncidentCategory.FAMINE_DROUGHT
+                elif any(k in p_lower for k in ["outbreak", "epidemic", "pandemic", "cholera", "dengue"]):
+                    dtype = IncidentCategory.MEDICAL_OUTBREAK
+                elif any(k in p_lower for k in ["collapse", "bridge", "building collapse", "infrastructure"]):
+                    dtype = IncidentCategory.INFRASTRUCTURE_COLLAPSE
+
+                # Extract rough location keywords from text
+                # (Nominatim geocoder in the pipeline will resolve these to real coords)
+                location_hints = []
+                for token in p.split():
+                    # Keep capitalized words as potential place names (simple heuristic)
+                    clean = token.strip(".,;:!?()\"'")
+                    if clean and clean[0].isupper() and len(clean) > 2 and clean.lower() not in {
+                        "gdacs", "alert", "breaking", "news", "the", "red", "cross",
+                        "tsunami", "warning", "update", "urgent", "emergency",
+                        "severe", "major", "massive", "critical", "deadly",
+                    }:
+                        location_hints.append(clean)
+
+                signals.append(RawSignal(
                     post_text=p,
-                    possible_locations=["Sylhet Basin", "Bangladesh"],
-                    coords_hint=GeoCoords(lat=24.8949, lng=91.8687),
-                    disaster_type=IncidentCategory.FLOOD,
-                    urgency_keywords=["urgent", "rescue", "trapped", "water"],
-                    estimated_affected=1500,
+                    possible_locations=location_hints[:5] if location_hints else ["Unknown"],
+                    coords_hint=None,  # Let Nominatim geocode from location names
+                    disaster_type=dtype,
+                    urgency_keywords=[k for k in ["urgent", "rescue", "trapped", "water", "emergency", "sos"] if k in p_lower],
+                    estimated_affected=None,
                     source_language="en",
-                )
-                for p in posts
-            ]
+                ))
+
             return RawSignalBatch(
                 signals=signals,
                 batch_timestamp=datetime.now(timezone.utc),
-                gemini_model_used="gemini-2.0-flash (mock)",
+                gemini_model_used="gemini-3.8-flash (mock-smart)",
                 processing_ms=150,
             )
 

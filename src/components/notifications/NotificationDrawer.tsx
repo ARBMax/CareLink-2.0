@@ -40,14 +40,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer Panel */}
-      <div className="relative w-full max-w-md bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800/90 h-full shadow-2xl flex flex-col z-10 animate-slide-in-right">
+      <div className="relative w-full max-w-md bg-slate-900/95 backdrop-blur-2xl border-l border-slate-700/90 h-full shadow-2xl flex flex-col z-10 animate-slide-in-right">
         {/* Drawer Header */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60">
+        <div className="p-4 border-b border-slate-700/80 flex items-center justify-between bg-slate-800/60">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300">
               <Bell className="w-4 h-4" />
@@ -65,7 +65,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onMarkAllRead}
-              className="text-xs text-teal-400 hover:text-teal-300 font-mono flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-900 transition-colors"
+              className="text-xs text-teal-400 hover:text-teal-300 font-mono flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               title="Mark all as read"
             >
               <CheckCheck className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-slate-900 text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800 transition-colors"
+              className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-700 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -81,7 +81,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         </div>
 
         {/* Filter Pills */}
-        <div className="px-4 py-2.5 border-b border-slate-800/80 bg-slate-900/30 flex items-center gap-2 text-xs font-mono">
+        <div className="px-4 py-2.5 border-b border-slate-700/80 bg-slate-800/30 flex items-center gap-2 text-xs font-mono">
           {(['ALL', 'CRITICAL', 'DISPATCH'] as const).map((tab) => (
             <button
               key={tab}
@@ -89,7 +89,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               className={`px-3 py-1 rounded-lg font-bold transition-all ${
                 filterType === tab
                   ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`}
             >
               {tab}
@@ -109,8 +109,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                 key={notif.id}
                 className={`p-3.5 rounded-2xl transition-all cursor-pointer ${
                   !notif.isRead
-                    ? 'bg-slate-900/90 border border-teal-500/40 shadow-lg'
-                    : 'bg-slate-900/40 border border-slate-800/80 hover:border-slate-700'
+                    ? 'bg-slate-800/90 border border-teal-500/40 shadow-lg'
+                    : 'bg-slate-800/40 border border-slate-700/80 hover:border-slate-700'
                 }`}
                 onClick={() => {
                   if (notif.incidentId && onSelectIncidentById) {

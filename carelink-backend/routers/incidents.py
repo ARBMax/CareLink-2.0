@@ -222,7 +222,7 @@ async def create_incident(payload: IncidentCreate):
         source=payload.source,
         source_url=payload.source_url,
         media_urls=payload.media_urls,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=payload.timestamp or datetime.now(timezone.utc),
     )
 
     _IN_MEMORY_INCIDENTS[incident.id] = incident

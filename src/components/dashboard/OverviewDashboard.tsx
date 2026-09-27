@@ -19,7 +19,8 @@ import {
   MapPin, 
   Radio, 
   Maximize2,
-  Minimize2
+  Minimize2,
+  Clock
 } from 'lucide-react';
 
 interface OverviewDashboardProps {
@@ -62,7 +63,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       {/* 1. Clean KPI Metric Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         {/* Active Crises */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs font-mono text-slate-400">ACTIVE CRISES</div>
             <div className="text-2xl font-bold font-mono text-slate-100 mt-1">
@@ -78,7 +79,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         </div>
 
         {/* Telemetry Ingestion */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs font-mono text-slate-400">TELEMETRY RATE</div>
             <div className="text-2xl font-bold font-mono text-slate-100 mt-1">
@@ -92,7 +93,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         </div>
 
         {/* Smart Matches */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs font-mono text-slate-400">MATCHES PENDING</div>
             <div className="text-2xl font-bold font-mono text-teal-300 mt-1">
@@ -106,7 +107,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         </div>
 
         {/* Responders */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs font-mono text-slate-400">RESPONDERS</div>
             <div className="text-2xl font-bold font-mono text-slate-100 mt-1">
@@ -126,7 +127,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-[500px]">
         {/* Left: 3D Globe (Expansive) */}
         <div className={`${isGlobeExpanded ? 'lg:col-span-12' : 'lg:col-span-7 xl:col-span-8'} flex flex-col gap-3 min-h-[460px] transition-all`}>
-          <div className="relative flex-1 w-full rounded-xl overflow-hidden border border-slate-800/80 bg-slate-950">
+          <div className="relative flex-1 w-full rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900">
             <Globe3D
               incidents={incidents}
               volunteers={volunteers}
@@ -152,9 +153,9 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
         {/* Right: Priority Queue / Telemetry Feed */}
         {!isGlobeExpanded && (
-          <div className="lg:col-span-5 xl:col-span-4 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-xl overflow-hidden min-h-[460px]">
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col bg-slate-800/60 border border-slate-700/80 rounded-xl overflow-hidden min-h-[460px]">
             {/* Header Tabs */}
-            <div className="p-2 border-b border-slate-800/80 flex items-center gap-1 bg-slate-950/40 text-xs font-mono">
+            <div className="p-2 border-b border-slate-700/80 flex items-center gap-1 bg-slate-900/40 text-xs font-mono">
               <button
                 onClick={() => setActiveTab('QUEUE')}
                 className={`flex-1 py-1.5 px-3 rounded-lg font-medium transition-colors ${
@@ -191,7 +192,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                       className={`p-3 rounded-lg border transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-slate-800/90 border-teal-500/70 text-slate-100'
-                          : 'bg-slate-950/50 border-slate-800/60 hover:border-slate-700 text-slate-300'
+                          : 'bg-slate-900/50 border-slate-700/60 hover:border-slate-700 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between text-xs mb-1.5">
@@ -218,7 +219,9 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                         <span>{inc.locationName}, {inc.country}</span>
                       </div>
 
-                      <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
+
+
+                      <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between text-xs">
                         <span className="text-[11px] font-mono text-slate-400">
                           Severity: <span className="text-slate-200 font-bold">{inc.severityScore}%</span>
                         </span>

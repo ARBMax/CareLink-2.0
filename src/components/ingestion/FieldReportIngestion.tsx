@@ -173,7 +173,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
   return (
     <div className="flex flex-col h-full gap-5">
       {/* Top Banner & Fast Preset Scenarios */}
-      <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
             <Radio className="w-5 h-5" />
@@ -239,9 +239,9 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
         {/* Left Column (7 cols): Ingestion Form */}
         <form
           onSubmit={handleIngest}
-          className="lg:col-span-7 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col gap-4"
+          className="lg:col-span-7 bg-slate-800/60 border border-slate-700/80 rounded-xl p-5 flex flex-col gap-4"
         >
-          <div className="border-b border-slate-800/60 pb-2.5">
+          <div className="border-b border-slate-700/60 pb-2.5">
             <h3 className="text-sm font-bold text-slate-100 font-mono">
               DISPATCH FORM
             </h3>
@@ -261,7 +261,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Surigao River Flooding"
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
             />
           </div>
 
@@ -276,7 +276,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
               value={reportText}
               onChange={(e) => setReportText(e.target.value)}
               placeholder="Paste raw transcript or details..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500 font-mono leading-relaxed resize-none"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500 font-mono leading-relaxed resize-none"
             />
           </div>
 
@@ -292,7 +292,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
                 required
                 value={lat}
                 onChange={(e) => setLat(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
               />
             </div>
             <div>
@@ -305,7 +305,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
                 required
                 value={lng}
                 onChange={(e) => setLng(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
               />
             </div>
             <div>
@@ -317,7 +317,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
                 required
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
               />
             </div>
           </div>
@@ -331,7 +331,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
               <select
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value as UrgencyLevel)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
               >
                 <option value="CRITICAL">CRITICAL</option>
                 <option value="HIGH">HIGH</option>
@@ -347,7 +347,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as IncidentCategory)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
               >
                 <option value="FLOOD">FLOOD</option>
                 <option value="EARTHQUAKE">EARTHQUAKE</option>
@@ -366,7 +366,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
               <select
                 value={region}
                 onChange={(e) => setRegion(e.target.value as typeof region)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-teal-500"
               >
                 <option value="Asia-Pacific">Asia-Pacific</option>
                 <option value="Americas">Americas</option>
@@ -384,7 +384,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
             </label>
             <div
               onClick={() => setMediaUploaded(!mediaUploaded)}
-              className="border border-dashed border-slate-800 hover:border-slate-700 bg-slate-950/40 rounded-lg p-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-3"
+              className="border border-dashed border-slate-700 hover:border-slate-700 bg-slate-900/40 rounded-lg p-3 text-center cursor-pointer transition-colors flex items-center justify-center gap-3"
             >
               <UploadCloud className="w-5 h-5 text-teal-400" />
               <div className="text-left text-xs">
@@ -408,8 +408,8 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
         </form>
 
         {/* Right Column (5 cols): Automated Analysis Preview */}
-        <div className="lg:col-span-5 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
+        <div className="lg:col-span-5 bg-slate-800/60 border border-slate-700/80 rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2.5">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-teal-400" />
               <h3 className="text-sm font-bold text-slate-100 font-mono">
@@ -428,7 +428,7 @@ export const FieldReportIngestion: React.FC<FieldReportIngestionProps> = ({
           </div>
 
           {/* Threat & Confidence Stats */}
-          <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-800/60">
+          <div className="grid grid-cols-2 gap-4 py-2 border-b border-slate-700/60">
             <div>
               <div className="text-[11px] font-mono text-slate-400">THREAT SCORE</div>
               <div className="text-2xl font-bold font-mono text-rose-400 mt-0.5">

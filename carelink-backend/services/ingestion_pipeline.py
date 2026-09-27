@@ -20,7 +20,7 @@ from core.firebase import get_db, COLLECTION_INCIDENTS, COLLECTION_TELEMETRY_LOG
 from core.websocket_manager import ws_manager, WSEvent
 from models.incident import (
     Incident, IncidentCreate, IncidentCategory, UrgencyLevel,
-    IncidentStatus, IncidentSource, GeoCoords
+    IncidentStatus, IncidentSource, GeoCoords, IncidentRegion
 )
 from models.telemetry_log import TelemetryLog, TelemetryLevel, SensorType
 from services.gemini_service import GeminiIngestionService, RawSignalBatch
@@ -63,6 +63,44 @@ async def _generate_incident_code(category: IncidentCategory) -> str:
     return f"{prefix}-{year}-{suffix}"
 
 
+def _derive_region(country: str, locations: list[str]) -> IncidentRegion:
+    """Derive the geographic region from country/location names."""
+    text = f"{country} {' '.join(locations)}".lower()
+
+    asia_pacific = ["bangladesh", "india", "nepal", "china", "japan", "philippines", "indonesia",
+                    "vietnam", "thailand", "myanmar", "pakistan", "sri lanka", "fiji", "australia",
+                    "new zealand", "tonga", "samoa", "vanuatu", "papua", "malaysia", "korea",
+                    "taiwan", "cambodia", "laos"]
+    americas = ["usa", "united states", "brazil", "mexico", "haiti", "colombia", "peru", "chile",
+                "argentina", "ecuador", "guatemala", "honduras", "puerto rico", "canada", "bolivia",
+                "venezuela", "cuba", "nicaragua", "panama", "costa rica", "dominican"]
+    africa = ["nigeria", "kenya", "ethiopia", "somalia", "sudan", "congo", "mozambique",
+              "tanzania", "uganda", "ghana", "south africa", "angola", "mali", "niger",
+              "chad", "cameroon", "madagascar", "malawi", "zambia", "zimbabwe", "senegal"]
+    europe = ["turkey", "greece", "italy", "spain", "france", "germany", "ukraine",
+              "romania", "albania", "croatia", "portugal", "iceland", "norway", "uk",
+              "united kingdom", "russia", "poland", "serbia", "bosnia"]
+    middle_east = ["syria", "iraq", "iran", "yemen", "jordan", "lebanon", "afghanistan",
+                   "palestine", "israel", "saudi", "oman", "qatar", "uae", "bahrain", "kuwait"]
+
+    for kw in asia_pacific:
+        if kw in text:
+            return IncidentRegion.ASIA_PACIFIC
+    for kw in americas:
+        if kw in text:
+            return IncidentRegion.AMERICAS
+    for kw in africa:
+        if kw in text:
+            return IncidentRegion.AFRICA
+    for kw in europe:
+        if kw in text:
+            return IncidentRegion.EUROPE
+    for kw in middle_east:
+        if kw in text:
+            return IncidentRegion.MIDDLE_EAST
+    return IncidentRegion.GLOBAL
+
+
 class IngestionPipeline:
     """
     Orchestrates the full signal → incident pipeline.
@@ -80,6 +118,7 @@ class IngestionPipeline:
         source:     str = "Manual",
         source_url: str | None = None,
         image_urls: list[str] | None = None,
+        incident_date: datetime | None = None,
     ) -> Incident:
         """
         Full pipeline execution:
@@ -139,9 +178,20 @@ class IngestionPipeline:
                 coords = signal.coords_hint
                 break
 
-        # Fallback: Nominatim geocoding
-        if coords is None and entities.primary_location:
-            coords = await _geocode_location(entities.primary_location)
+        # Fallback: Nominatim geocoding — try primary_location, then each entity location
+        if coords is None:
+            geocode_candidates = []
+            if entities.primary_location and entities.primary_location != "Unknown":
+                geocode_candidates.append(entities.primary_location)
+            geocode_candidates.extend(
+                loc for loc in entities.locations
+                if loc != "Unknown" and loc != entities.primary_location
+            )
+            for candidate in geocode_candidates:
+                coords = await _geocode_location(candidate)
+                if coords:
+                    logger.info("📍 Geocoded '{}' → ({}, {})", candidate, coords.lat, coords.lng)
+                    break
 
         # Last resort: zero island (will show on globe at 0,0 for manual correction)
         if coords is None:
@@ -150,7 +200,21 @@ class IngestionPipeline:
 
         # ── Stage 4: Build Incident object ───────────────────────────────────
         code = await _generate_incident_code(entities.disaster_category)
-        incident = Incident(
+        country = entities.locations[0] if entities.locations else "Unknown"
+        region = _derive_region(country, entities.locations)
+
+        # Determine source type
+        source_lower = source.lower()
+        if "twitter" in source_lower or "x.com" in source_lower:
+            inc_source = IncidentSource.TWITTER
+        elif "gdacs" in source_lower or "news" in source_lower or "feed" in source_lower:
+            inc_source = IncidentSource.NEWS_FEED
+        elif "satellite" in source_lower:
+            inc_source = IncidentSource.SATELLITE_TELEMETRY
+        else:
+            inc_source = IncidentSource.MANUAL
+
+        kwargs = dict(
             code=code,
             title=summary_obj.short_title,
             category=entities.disaster_category,
@@ -158,8 +222,8 @@ class IngestionPipeline:
             status=IncidentStatus.PENDING_DISPATCH,
             coords=coords,
             location_name=entities.primary_location or "Unknown",
-            country=entities.locations[0] if entities.locations else "Unknown",
-            region="Asia-Pacific",   # TODO: derive from coords via reverse-geocode
+            country=country,
+            region=region,
             severity_score=entities.severity_score,
             population_affected=entities.population_affected,
             casualties_confirmed=entities.casualties_confirmed,
@@ -168,15 +232,19 @@ class IngestionPipeline:
             description=summary_obj.summary,
             extracted_needs=entities.extracted_needs,
             required_skills=entities.required_skills,
-            source=IncidentSource.TWITTER if "twitter" in source.lower() else IncidentSource.MANUAL,
+            source=inc_source,
             source_url=source_url,
             media_urls=image_urls or [],
             ai_confidence=min(
                 1.0,
                 sum(s.confidence for s in signal_batch.signals if hasattr(s, "confidence")) / max(1, len(signal_batch.signals))
                 if signal_batch.signals else 0.8
-            ),
+            )
         )
+        if incident_date:
+            kwargs["timestamp"] = incident_date
+
+        incident = Incident(**kwargs)
 
         # ── Stage 5: Persist to Firestore ────────────────────────────────────
         db = get_db()

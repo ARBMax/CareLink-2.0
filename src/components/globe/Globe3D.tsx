@@ -68,7 +68,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
   const [currentSolarInfo, setCurrentSolarInfo] = useState<SolarTelemetry>(() => calculateSubsolarPoint(new Date()));
 
   // Visual Overlays
-  const [showClouds, setShowClouds] = useState(true);
+  const [showClouds, setShowClouds] = useState(false);
   const [showAtmosphere, setShowAtmosphere] = useState(true);
 
   // References for Three.js instances
@@ -242,9 +242,9 @@ export const Globe3D: React.FC<Globe3DProps> = ({
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(ambientLight);
 
-    // Master Globe Group with YXZ rotation order for precise lat/lng targeting
+    // Master Globe Group with XYZ rotation order for precise lat/lng targeting
     const globeGroup = new THREE.Group();
-    globeGroup.rotation.order = 'YXZ';
+    globeGroup.rotation.order = 'XYZ';
     scene.add(globeGroup);
     globeGroupRef.current = globeGroup;
 
@@ -379,10 +379,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
 
           // Ocean Specular Glint (water shines in direct sunlight, continents remain matte)
           float isWater = specData.r;
-          vec3 viewDirLocal = normalize(-vPosition);
-          vec3 halfVec = normalize(sunDir + viewDirLocal);
-          float specDot = max(0.0, dot(normal, halfVec));
-          float specular = pow(specDot, 28.0) * isWater * dayFactor;
+          float specular = pow(max(0.0, sunDot), 28.0) * isWater * dayFactor;
           vec3 specularColor = vec3(1.0, 0.96, 0.85) * specular * 0.85;
 
           // Night side: luminous city lights and power grids glowing in darkness
@@ -758,30 +755,22 @@ export const Globe3D: React.FC<Globe3DProps> = ({
     }
   }, [showAtmosphere]);
 
-  // Update Dynamic 3D Objects when data or layers change
+  // Update Disaster Zones
   useEffect(() => {
     const disasterGroup = disasterGroupRef.current;
-    const volunteerGroup = volunteerGroupRef.current;
-    const arcsGroup = arcsGroupRef.current;
-    if (!disasterGroup || !volunteerGroup || !arcsGroup) return;
+    if (!disasterGroup) return;
 
     while (disasterGroup.children.length > 0) {
       disasterGroup.remove(disasterGroup.children[0]);
     }
-    while (volunteerGroup.children.length > 0) {
-      volunteerGroup.remove(volunteerGroup.children[0]);
-    }
-    while (arcsGroup.children.length > 0) {
-      arcsGroup.remove(arcsGroup.children[0]);
-    }
-
+    
     pulseRingsRef.current = [];
-    arcPacketsRef.current = [];
 
     // 1. Disaster Pinpoint Markers Layer
     if (layerState.disasterZones) {
       incidents.forEach((incident) => {
-        const pos = latLngToVector3(incident.coords.lat, incident.coords.lng, GLOBE_RADIUS);
+        // Offset radius by +0.5 to prevent severe Z-fighting with the earth sphere
+        const pos = latLngToVector3(incident.coords.lat, incident.coords.lng, GLOBE_RADIUS + 0.5);
         const markerObj = new THREE.Group();
         markerObj.position.copy(pos);
         markerObj.lookAt(pos.clone().multiplyScalar(2));
@@ -861,6 +850,16 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         disasterGroup.add(markerObj);
       });
     }
+  }, [incidents, layerState.disasterZones, selectedIncidentId]);
+
+  // Update Volunteer Density
+  useEffect(() => {
+    const volunteerGroup = volunteerGroupRef.current;
+    if (!volunteerGroup) return;
+
+    while (volunteerGroup.children.length > 0) {
+      volunteerGroup.remove(volunteerGroup.children[0]);
+    }
 
     // 2. Volunteer Density Standby Nodes Layer
     if (layerState.volunteerDensity) {
@@ -893,6 +892,18 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         volunteerGroup.add(vNode);
       });
     }
+  }, [volunteers, layerState.volunteerDensity]);
+
+  // Update Supply Route Arcs
+  useEffect(() => {
+    const arcsGroup = arcsGroupRef.current;
+    if (!arcsGroup) return;
+
+    while (arcsGroup.children.length > 0) {
+      arcsGroup.remove(arcsGroup.children[0]);
+    }
+    
+    arcPacketsRef.current = [];
 
     // 3. Supply Route & Dispatch Arcs Layer
     if (layerState.supplyRouteArcs) {
@@ -936,7 +947,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         });
       });
     }
-  }, [incidents, volunteers, dispatchArcs, layerState, selectedIncidentId]);
+  }, [dispatchArcs, layerState.supplyRouteArcs]);
 
   // Filtered incidents for search bar
   const matchingIncidents = searchQuery.trim()
@@ -952,7 +963,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
   const selectedIncident = incidents.find((i) => i.id === selectedIncidentId);
 
   return (
-    <div className="relative w-full h-full min-h-[440px] bg-slate-950 rounded-xl overflow-hidden border border-slate-800/80 flex flex-col group">
+    <div className="relative w-full h-full min-h-[440px] bg-slate-900 rounded-xl overflow-hidden border border-slate-700/80 flex flex-col group">
       {/* 3D WebGL Canvas */}
       <div
         ref={containerRef}
@@ -983,7 +994,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
               {isSelected ? (
                 /* Selected Pinpoint Reticle & Badge */
                 <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
-                  <div className="bg-slate-900/95 backdrop-blur-md border border-teal-400/80 text-slate-100 rounded-lg px-2.5 py-1.5 shadow-2xl flex items-center gap-2 mb-1 whitespace-nowrap ring-2 ring-teal-400/30">
+                  <div className="bg-slate-800/95 backdrop-blur-md border border-teal-400/80 text-slate-100 rounded-lg px-2.5 py-1.5 shadow-2xl flex items-center gap-2 mb-1 whitespace-nowrap ring-2 ring-teal-400/30">
                     <Crosshair className="w-3.5 h-3.5 text-teal-400 animate-spin" style={{ animationDuration: '6s' }} />
                     <div>
                       <div className="flex items-center gap-1.5 text-xs font-bold font-mono">
@@ -1037,7 +1048,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         {/* Quick Place Pinpoint Selector Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1 pointer-events-auto scrollbar-none">
-          <div className="px-2.5 py-1 bg-slate-900/90 backdrop-blur-md rounded-lg border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center gap-1.5 shrink-0 shadow-sm">
+          <div className="px-2.5 py-1 bg-slate-800/90 backdrop-blur-md rounded-lg border border-slate-700 text-[11px] font-mono text-slate-300 flex items-center gap-1.5 shrink-0 shadow-sm">
             <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0" />
             <span className="hidden sm:inline">Pinpoints:</span>
           </div>
@@ -1054,7 +1065,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
                 className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-all shrink-0 border flex items-center gap-1.5 shadow-sm ${
                   isSelected
                     ? 'bg-teal-500/20 text-teal-200 border-teal-500/60 ring-1 ring-teal-500/40'
-                    : 'bg-slate-900/80 hover:bg-slate-850 text-slate-300 border-slate-800 hover:border-slate-700'
+                    : 'bg-slate-800/80 hover:bg-slate-850 text-slate-300 border-slate-700 hover:border-slate-700'
                 }`}
               >
                 <span
@@ -1070,7 +1081,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
 
           <button
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors shrink-0 shadow-sm"
+            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors shrink-0 shadow-sm"
             title="Search places on globe"
           >
             <Search className="w-3.5 h-3.5" />
@@ -1080,7 +1091,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
         {/* Right Side: Real-Time Solar Data Controls & Earth Layers */}
         <div className="flex items-center gap-1.5 pointer-events-auto">
           {/* Real-Time Day / Night Solar Terminator Controls */}
-          <div className="bg-slate-900/90 backdrop-blur-md p-1 rounded-lg border border-slate-800 flex items-center gap-1 text-xs font-mono shadow-sm">
+          <div className="bg-slate-800/90 backdrop-blur-md p-1 rounded-lg border border-slate-700 flex items-center gap-1 text-xs font-mono shadow-sm">
             {/* Live Real-Time Solar Sync Button */}
             <button
               id="btn-solar-realtime"
@@ -1157,8 +1168,8 @@ export const Globe3D: React.FC<Globe3DProps> = ({
             title={showClouds ? 'Hide Cloud Cover' : 'Show Realistic Clouds'}
             className={`p-1.5 rounded-lg border transition-all shadow-sm ${
               showClouds
-                ? 'bg-slate-900/90 border-slate-700 text-teal-300'
-                : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300'
+                ? 'bg-slate-800/90 border-slate-700 text-teal-300'
+                : 'bg-slate-800/60 border-slate-700 text-slate-500 hover:text-slate-300'
             }`}
           >
             <Cloud className="w-3.5 h-3.5" />
@@ -1170,8 +1181,8 @@ export const Globe3D: React.FC<Globe3DProps> = ({
             title={showAtmosphere ? 'Hide Atmospheric Rayleigh Glow' : 'Show Atmospheric Glow'}
             className={`p-1.5 rounded-lg border transition-all shadow-sm ${
               showAtmosphere
-                ? 'bg-slate-900/90 border-slate-700 text-sky-300'
-                : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300'
+                ? 'bg-slate-800/90 border-slate-700 text-sky-300'
+                : 'bg-slate-800/60 border-slate-700 text-slate-500 hover:text-slate-300'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1182,7 +1193,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       {/* Real-Time Solar Telemetry Strip & Interactive Time Scrubber */}
       <div className="absolute top-13 right-3 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
         {/* Live Subsolar Coordinate & UTC Status */}
-        <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300 shadow-lg flex items-center gap-2">
+        <div className="pointer-events-auto bg-slate-800/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-700 text-[10px] font-mono text-slate-300 shadow-lg flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${solarMode === 'REALTIME' ? 'bg-teal-400 animate-pulse' : 'bg-amber-400'}`} />
             <span className="font-bold text-teal-300">{currentSolarInfo.utcTimeString}</span>
@@ -1198,7 +1209,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
 
         {/* 24-Hour Solar Time Scrubber Drawer */}
         {showTimeScrubber && (
-          <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-md p-2.5 rounded-xl border border-sky-500/40 text-xs font-mono text-slate-200 shadow-2xl w-72 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="pointer-events-auto bg-slate-800/95 backdrop-blur-md p-2.5 rounded-xl border border-sky-500/40 text-xs font-mono text-slate-200 shadow-2xl w-72 animate-in fade-in slide-in-from-top-1 duration-150">
             <div className="flex items-center justify-between text-[11px] mb-1.5">
               <span className="text-sky-300 font-bold flex items-center gap-1">
                 <Sliders className="w-3 h-3" />
@@ -1243,8 +1254,8 @@ export const Globe3D: React.FC<Globe3DProps> = ({
 
       {/* Expandable Place Search Modal Overlay */}
       {isSearchOpen && (
-        <div className="absolute top-14 left-3 z-30 w-80 max-w-[calc(100vw-2rem)] bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-xl p-3 shadow-2xl animate-in fade-in duration-150">
-          <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800">
+        <div className="absolute top-14 left-3 z-30 w-80 max-w-[calc(100vw-2rem)] bg-slate-800/95 backdrop-blur-md border border-slate-700 rounded-xl p-3 shadow-2xl animate-in fade-in duration-150">
+          <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-700">
             <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-200">
               <Search className="w-3.5 h-3.5 text-teal-400" />
               <span>PINPOINT PLACE ON GLOBE</span>
@@ -1263,7 +1274,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
             placeholder="Type city, country, or incident code..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 mb-2 font-mono"
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500 mb-2 font-mono"
           />
 
           <div className="max-h-48 overflow-y-auto space-y-1">
@@ -1275,7 +1286,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
                   flyToCoords(inc.coords.lat, inc.coords.lng);
                   setIsSearchOpen(false);
                 }}
-                className="p-2 rounded-lg bg-slate-950/60 hover:bg-slate-800 border border-slate-800/80 hover:border-teal-500/50 cursor-pointer text-xs transition-colors"
+                className="p-2 rounded-lg bg-slate-900/60 hover:bg-slate-800 border border-slate-700/80 hover:border-teal-500/50 cursor-pointer text-xs transition-colors"
               >
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="font-bold text-teal-400">{inc.code}</span>
@@ -1292,7 +1303,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
       )}
 
       {/* Floating View Controls (Bottom Right) */}
-      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 bg-slate-900/80 backdrop-blur-sm p-1 rounded-lg border border-slate-800 text-slate-400">
+      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1 bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg border border-slate-700 text-slate-400">
         <button
           id="btn-globe-zoomin"
           onClick={() => {
@@ -1351,7 +1362,7 @@ export const Globe3D: React.FC<Globe3DProps> = ({
 
       {/* Selected Incident Pinpoint Card (Bottom Left) */}
       {selectedIncident && (
-        <div className="absolute bottom-3 left-3 z-20 max-w-sm bg-slate-900/95 backdrop-blur-md border border-teal-500/60 rounded-xl p-3 shadow-xl animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-3 left-3 z-20 max-w-sm bg-slate-800/95 backdrop-blur-md border border-teal-500/60 rounded-xl p-3 shadow-xl animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 mb-0.5">

@@ -33,28 +33,23 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="h-16 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/60 px-5 sm:px-8 flex items-center justify-between gap-6 z-40 shrink-0">
+    <header className="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/60 px-5 sm:px-8 flex items-center justify-between gap-6 z-40 shrink-0">
       {/* Left: Brand */}
       <div 
         onClick={() => onSelectView('dashboard')}
-        className="flex items-center gap-3 cursor-pointer group select-none"
+        className="flex items-center cursor-pointer group select-none pl-1"
       >
-        <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 group-hover:border-teal-400 transition-colors">
-          <Activity className="w-4 h-4 text-teal-400" />
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-bold tracking-wider text-slate-100 font-mono">
-            CARELINK
-          </span>
-          <span className="text-[11px] text-slate-500 font-sans hidden sm:inline">
-            Humanitarian Intelligence
-          </span>
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="CareLink Logo" 
+          className="h-11 object-contain transition-transform group-hover:scale-105"
+          style={{ filter: 'invert(1) hue-rotate(180deg) brightness(1.2)' }} 
+        />
       </div>
 
       {/* Center: Clean Operational State Badge */}
       <div className="hidden md:flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1 bg-slate-900/60 border border-slate-800/80 rounded-full text-xs font-mono">
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/60 border border-slate-700/80 rounded-full text-xs font-mono">
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse-subtle" />
           <span className="text-slate-300 font-semibold">DEFCON 2</span>
           <span className="text-slate-600">•</span>
@@ -86,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           id="btn-header-notifications"
           onClick={onToggleNotificationDrawer}
-          className="relative p-2 rounded-lg bg-slate-900/60 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-800/80 transition-all active:scale-95"
+          className="relative p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/80 transition-all active:scale-95"
           title="Notifications"
         >
           <Bell className="w-4 h-4" />

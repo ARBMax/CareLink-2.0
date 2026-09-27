@@ -10,6 +10,47 @@ import {
   Award, 
   ArrowRight
 } from 'lucide-react';
+import { MapContainer, GeoJSON, CircleMarker, useMap, TileLayer } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  map.setView(center, zoom);
+  return null;
+}
+
+function CountryFeature({ geoData, countryName, incidentCoords }: { geoData: any, countryName: string, incidentCoords: {lat: number, lng: number} }) {
+  const map = useMap();
+  const feature = geoData?.features?.find((f: any) => f.properties.name === countryName);
+  
+  React.useEffect(() => {
+    if (feature) {
+      const geoJsonLayer = L.geoJSON(feature);
+      const bounds = geoJsonLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    } else {
+      map.setView([incidentCoords.lat, incidentCoords.lng], 5);
+    }
+  }, [feature, map, incidentCoords]);
+
+  if (!feature) return null;
+
+  return (
+    <GeoJSON 
+      key={feature.properties.name}
+      data={feature} 
+      style={{
+        color: '#14b8a6', // teal-500 border for strong highlight
+        weight: 2, 
+        fillColor: '#14b8a6', 
+        fillOpacity: 0.1 
+      }} 
+    />
+  );
+}
 
 interface SmartMatchEngineProps {
   incidents: Incident[];
@@ -19,6 +60,9 @@ interface SmartMatchEngineProps {
   onDispatchVolunteer: (incident: Incident, volunteer: Volunteer) => void;
   onNavigateToGlobe?: () => void;
 }
+
+// Module-level cache to prevent repeated heavy fetching
+let globalGeoDataCache: any = null;
 
 export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
   incidents,
@@ -30,6 +74,19 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
 }) => {
   const [dispatchedVolunteers, setDispatchedVolunteers] = useState<string[]>([]);
   const [lastDispatchedInfo, setLastDispatchedInfo] = useState<{ volName: string; incTitle: string } | null>(null);
+  const [geoData, setGeoData] = useState<any>(globalGeoDataCache);
+
+  React.useEffect(() => {
+    if (!globalGeoDataCache) {
+      fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+        .then(res => res.json())
+        .then(data => {
+          globalGeoDataCache = data;
+          setGeoData(data);
+        })
+        .catch(err => console.error("Failed to load country shapes:", err));
+    }
+  }, []);
 
   // Compute matched score for volunteers against selected incident requirements
   const scoredVolunteers = volunteers.map((vol) => {
@@ -70,7 +127,7 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
   return (
     <div className="flex flex-col h-full gap-5">
       {/* Top Header & Incident Selector Bar */}
-      <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-400">
             <Sparkles className="w-5 h-5" />
@@ -96,7 +153,7 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
               if (inc) onSelectIncident(inc);
             }}
             aria-label="Select target disaster incident"
-            className="bg-slate-950 text-slate-200 border border-slate-700/70 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-teal-500"
+            className="bg-slate-900 text-slate-200 border border-slate-700/70 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-teal-500"
           >
             {incidents.map((inc) => (
               <option key={inc.id} value={inc.id}>
@@ -138,7 +195,7 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
       {/* Split Layout: Incident Details (Left) & Ranked Responders (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
         {/* Left: Incident Details Dossier */}
-        <div className="lg:col-span-5 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col gap-4">
+        <div className="lg:col-span-5 bg-slate-800/60 border border-slate-700/80 rounded-xl p-5 flex flex-col gap-4">
           {/* Header */}
           <div>
             <div className="flex items-center justify-between text-xs mb-1">
@@ -166,8 +223,65 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
             </div>
           </div>
 
+          {/* Regional Area Map */}
+          <div className="w-full h-56 rounded-lg overflow-hidden border border-slate-700/60 mt-1 mb-1 relative bg-slate-900 flex-shrink-0 z-0">
+            <style>
+              {`
+                .dark-tiles .leaflet-tile-pane {
+                  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+                }
+              `}
+            </style>
+            <MapContainer 
+              center={[selectedIncident.coords.lat, selectedIncident.coords.lng]} 
+              zoom={5} 
+              zoomControl={false}
+              className="dark-tiles"
+              style={{ width: '100%', height: '100%', backgroundColor: '#0f172a' }}
+            >
+              {/* Standard OSM base map with CSS inversion */}
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <CountryFeature 
+                geoData={geoData} 
+                countryName={selectedIncident.country} 
+                incidentCoords={selectedIncident.coords} 
+              />
+              
+              {/* Ping Marker for the affected location */}
+              <CircleMarker
+                center={[selectedIncident.coords.lat, selectedIncident.coords.lng]}
+                radius={8}
+                pane="markerPane"
+                pathOptions={{ 
+                  color: selectedIncident.urgency === 'CRITICAL' ? '#f43f5e' : '#f59e0b', 
+                  fillColor: selectedIncident.urgency === 'CRITICAL' ? '#f43f5e' : '#f59e0b', 
+                  fillOpacity: 0.8, 
+                  weight: 2 
+                }}
+              />
+              <CircleMarker
+                center={[selectedIncident.coords.lat, selectedIncident.coords.lng]}
+                radius={25}
+                pane="markerPane"
+                pathOptions={{ 
+                  color: selectedIncident.urgency === 'CRITICAL' ? '#f43f5e' : '#f59e0b', 
+                  fillColor: selectedIncident.urgency === 'CRITICAL' ? '#f43f5e' : '#f59e0b', 
+                  fillOpacity: 0.15, 
+                  weight: 1 
+                }}
+              />
+            </MapContainer>
+            
+            <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm font-mono text-[10px] text-slate-300 px-2 py-0.5 rounded border border-slate-700/50 pointer-events-none z-[1000]">
+              AFFECTED REGION
+            </div>
+          </div>
+
           {/* Key Metrics Row */}
-          <div className="grid grid-cols-3 gap-3 py-3 border-y border-slate-800/60 text-center">
+          <div className="grid grid-cols-3 gap-3 py-3 border-y border-slate-700/60 text-center">
             <div>
               <div className="text-[11px] text-slate-400 font-mono">SEVERITY</div>
               <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
@@ -232,11 +346,39 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
               ))}
             </div>
           </div>
+
+          {/* AI Strategic Playbook */}
+          <div className="mt-2 bg-indigo-950/40 border border-indigo-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-xs font-mono text-indigo-300 uppercase tracking-wider mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Tactical Strategy
+            </div>
+            <ul className="space-y-2.5">
+              <li className="text-xs text-indigo-100/90 flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0" />
+                <span>Establish safe staging zone near {selectedIncident.locationName} away from the primary hazard zone.</span>
+              </li>
+              <li className="text-xs text-indigo-100/90 flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0" />
+                <span>Prioritize deployment of {selectedIncident.requiredSkills.slice(0, 2).join(' & ')} specialists for immediate triage operations.</span>
+              </li>
+              {selectedIncident.extractedNeeds.length > 0 && (
+                <li className="text-xs text-indigo-100/90 flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0" />
+                  <span>Coordinate rapid logistics pipeline specifically for {selectedIncident.extractedNeeds.slice(0, 2).join(' and ')} distribution.</span>
+                </li>
+              )}
+              <li className="text-xs text-indigo-100/90 flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1 flex-shrink-0" />
+                <span>Interface with local authorities to manage and track the {selectedIncident.populationAffected.toLocaleString()} affected civilians.</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Right: AI-Ranked Responders Pool */}
-        <div className="lg:col-span-7 bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+        <div className="lg:col-span-7 bg-slate-800/60 border border-slate-700/80 rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
             <div>
               <h3 className="text-sm font-bold font-mono text-slate-100">
                 RECOMMENDED RESPONDERS
@@ -263,7 +405,7 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
                       ? 'bg-emerald-950/20 border-emerald-500/30'
                       : index === 0
                       ? 'bg-slate-800/70 border-teal-500/50 shadow-sm'
-                      : 'bg-slate-950/50 border-slate-800/60 hover:border-slate-700'
+                      : 'bg-slate-900/50 border-slate-700/60 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -310,7 +452,7 @@ export const SmartMatchEngine: React.FC<SmartMatchEngineProps> = ({
                   </div>
 
                   {/* Skills and Dispatch Action */}
-                  <div className="mt-3 pt-3 border-t border-slate-800/60 flex flex-wrap items-center justify-between gap-3">
+                  <div className="mt-3 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap gap-1.5">
                       {vol.skills.map((skill, sIdx) => (
                         <span

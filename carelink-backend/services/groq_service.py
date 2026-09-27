@@ -35,7 +35,7 @@ class EntityBundle(BaseModel):
     displaced_count:     int = 0
     severity_score:      int                # 0–100
     key_facts:           list[str]          # 3–5 bullet point facts
-    groq_model_used:     str = "llama-3.3-70b-versatile"
+    groq_model_used:     str = "qwen/qwen3.8-27b"
     processing_ms:       int = 0
 
 
@@ -54,7 +54,7 @@ class GroqProcessingService:
     at ~500 tokens/second for near-real-time analysis.
     """
 
-    MODEL = "llama-3.3-70b-versatile"
+    MODEL = "qwen/qwen3.8-27b"
 
     def __init__(self):
         settings = get_settings()
@@ -80,25 +80,75 @@ class GroqProcessingService:
         Identifies people, orgs, locations, needs, and required skills.
         """
         if self.client is None:
+            # ── Smart mock: derive entities from actual signal batch content ──
+            all_locations = []
+            disaster_type = IncidentCategory.FLOOD
+            urgency_kws = set()
+
+            for sig in batch.signals:
+                all_locations.extend(sig.possible_locations)
+                # Use actual disaster type from signals
+                if isinstance(sig.disaster_type, IncidentCategory):
+                    disaster_type = sig.disaster_type
+                elif isinstance(sig.disaster_type, str):
+                    for cat in IncidentCategory:
+                        if cat.value.lower() in sig.disaster_type.lower():
+                            disaster_type = cat
+                            break
+                urgency_kws.update(sig.urgency_keywords)
+
+            # Deduplicate locations while preserving order
+            seen = set()
+            unique_locations = []
+            for loc in all_locations:
+                if loc.lower() not in seen and loc != "Unknown":
+                    seen.add(loc.lower())
+                    unique_locations.append(loc)
+
+            primary_loc = unique_locations[0] if unique_locations else "Unknown"
+            country = unique_locations[1] if len(unique_locations) > 1 else unique_locations[0] if unique_locations else "Unknown"
+
+            # Map needs/skills to disaster category
+            needs_map = {
+                IncidentCategory.FLOOD: ["Water Purification", "Amphibious Boats", "Emergency Tents", "Food Packs"],
+                IncidentCategory.EARTHQUAKE: ["Heavy Rescue Equipment", "Trauma Kits", "Structural Engineers", "Thermal Imaging"],
+                IncidentCategory.CYCLONE: ["Satellite Comms", "Tarpaulins", "Desalination Kits", "Generators"],
+                IncidentCategory.WILDFIRE: ["Fire Retardant", "Evacuation Transport", "Respiratory Gear", "Water Tankers"],
+                IncidentCategory.FAMINE_DROUGHT: ["Food Aid", "Water Purification", "Nutrition Supplements", "Agricultural Support"],
+                IncidentCategory.MEDICAL_OUTBREAK: ["Medical Supplies", "Quarantine Tents", "PPE Kits", "Vaccine Cold Chain"],
+                IncidentCategory.INFRASTRUCTURE_COLLAPSE: ["Heavy Cranes", "Rescue Dogs", "Acoustic Listening Gear", "Trauma Surgery"],
+            }
+            skills_map = {
+                IncidentCategory.FLOOD: ["USAR", "Water Purification", "Swiftwater Rescue"],
+                IncidentCategory.EARTHQUAKE: ["USAR", "Structural Triage", "Trauma Surgery", "K9 Search"],
+                IncidentCategory.CYCLONE: ["Satellite Comms", "Logistics Coordination", "Field Radio"],
+                IncidentCategory.WILDFIRE: ["Firefighting", "Aerial Support", "Evacuation Coordination"],
+                IncidentCategory.FAMINE_DROUGHT: ["Nutrition", "Water Engineering", "Agricultural Aid"],
+                IncidentCategory.MEDICAL_OUTBREAK: ["Epidemiology", "Emergency Medicine", "Lab Diagnostics"],
+                IncidentCategory.INFRASTRUCTURE_COLLAPSE: ["USAR", "Structural Engineering", "Trauma Surgery"],
+            }
+
+            has_critical = any(k in urgency_kws for k in {"urgent", "sos", "trapped", "emergency"})
+
             return EntityBundle(
-                people_orgs=["Red Crescent", "Local Disaster Unit"],
-                locations=["Sylhet", "Sunamganj", "Bangladesh"],
-                primary_location="Sylhet Basin",
-                disaster_category=IncidentCategory.FLOOD,
-                urgency_level=UrgencyLevel.CRITICAL,
-                extracted_needs=["Water Purification", "Amphibious Boats", "Tents"],
-                required_skills=["USAR", "Trauma Surgery", "Water Purification"],
-                population_affected=18000,
-                casualties_confirmed=5,
-                casualties_missing=12,
-                displaced_count=6500,
-                severity_score=92,
+                people_orgs=["Red Cross", "Local Disaster Response"],
+                locations=unique_locations[:5] if unique_locations else ["Unknown"],
+                primary_location=primary_loc,
+                disaster_category=disaster_type,
+                urgency_level=UrgencyLevel.CRITICAL if has_critical else UrgencyLevel.HIGH,
+                extracted_needs=needs_map.get(disaster_type, ["General Relief Supplies"]),
+                required_skills=skills_map.get(disaster_type, ["USAR", "Field Radio"]),
+                population_affected=5000,
+                casualties_confirmed=0,
+                casualties_missing=0,
+                displaced_count=1000,
+                severity_score=85 if has_critical else 70,
                 key_facts=[
-                    "Flash flooding triggered by continuous monsoon surge",
-                    "Over 500 families stranded on rooftops without clean water",
-                    "Local hospital access road submerged",
+                    f"{disaster_type.value} event detected in {primary_loc}",
+                    f"Locations mentioned: {', '.join(unique_locations[:3])}",
+                    "Humanitarian response coordination needed",
                 ],
-                groq_model_used="llama-3.3-70b-versatile (mock)",
+                groq_model_used="qwen/qwen3.8-27b (mock-smart)",
                 processing_ms=180,
             )
 

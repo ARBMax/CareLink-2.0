@@ -4,7 +4,7 @@ Tests signal filtering and fallback handling.
 """
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from services.gemini_service import GeminiIngestionService, RawSignalBatch, DisasterSignal
+from services.gemini_service import GeminiIngestionService, RawSignalBatch
 
 
 @pytest.mark.asyncio
@@ -34,4 +34,4 @@ async def test_extract_raw_signals_structure():
     batch = await service.extract_raw_signals(test_posts)
     assert isinstance(batch, RawSignalBatch)
     assert len(batch.signals) >= 1
-    assert batch.signals[0].text is not None
+    assert batch.signals[0].post_text is not None

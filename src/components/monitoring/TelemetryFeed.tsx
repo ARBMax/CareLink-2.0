@@ -49,9 +49,9 @@ export const TelemetryFeed: React.FC<TelemetryFeedProps> = ({
   });
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
+    <div className="bg-slate-800/60 border border-slate-700/80 rounded-xl flex flex-col h-full overflow-hidden">
       {/* Header bar */}
-      <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between gap-3 bg-slate-950/40">
+      <div className="p-3.5 border-b border-slate-700/80 flex items-center justify-between gap-3 bg-slate-900/40">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
           <h3 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wide">
@@ -87,7 +87,7 @@ export const TelemetryFeed: React.FC<TelemetryFeedProps> = ({
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="p-3 border-b border-slate-800/60 bg-slate-950/20 flex flex-col sm:flex-row items-center gap-2">
+      <div className="p-3 border-b border-slate-700/60 bg-slate-900/20 flex flex-col sm:flex-row items-center gap-2">
         <div className="relative flex-1 w-full">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
@@ -95,7 +95,7 @@ export const TelemetryFeed: React.FC<TelemetryFeedProps> = ({
             placeholder="Search signals or sources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-8 pr-6 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+            className="w-full bg-slate-900/80 border border-slate-700 rounded-lg pl-8 pr-6 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500"
           />
         </div>
 
@@ -138,7 +138,7 @@ export const TelemetryFeed: React.FC<TelemetryFeedProps> = ({
                     onSelectIncidentById(log.incidentId);
                   }
                 }}
-                className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/60 hover:border-slate-700 transition-colors cursor-pointer text-xs"
+                className="p-3 rounded-lg bg-slate-900/40 border border-slate-700/60 hover:border-slate-700 transition-colors cursor-pointer text-xs"
               >
                 <div className="flex items-center justify-between text-[11px] mb-1">
                   <div className="flex items-center gap-1.5">
@@ -182,7 +182,7 @@ export const TelemetryFeed: React.FC<TelemetryFeedProps> = ({
                 </p>
 
                 {linkedIncident && (
-                  <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-teal-400">
+                  <div className="mt-1.5 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-teal-400">
                     <span>Target: {linkedIncident.code} ({linkedIncident.country})</span>
                     <span className="hover:underline">View details →</span>
                   </div>

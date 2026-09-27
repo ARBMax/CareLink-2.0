@@ -36,6 +36,10 @@ import { SmartMatchEngine } from './components/smart-match/SmartMatchEngine';
 import { FieldReportIngestion } from './components/ingestion/FieldReportIngestion';
 import { TelemetryFeed } from './components/monitoring/TelemetryFeed';
 import { NotificationDrawer, NotificationItem } from './components/notifications/NotificationDrawer';
+import { EarlyWarningPanel } from './components/early-warning/EarlyWarningPanel';
+import { PreparednessPlan } from './components/preparedness/PreparednessPlan';
+import { AfterActionReports } from './components/after-action/AfterActionReports';
+import { RecoveryTrackerView } from './components/recovery/RecoveryTracker';
 
 export default function App() {
   // Application State
@@ -44,7 +48,28 @@ export default function App() {
   const [dispatchArcs, setDispatchArcs] = useState<DispatchArc[]>(INITIAL_DISPATCH_ARCS);
   const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLog[]>(INITIAL_TELEMETRY_LOGS);
   const [stats, setStats] = useState<KPIStats>(INITIAL_STATS);
-  const [selectedIncident, setSelectedIncident] = useState<Incident>(INITIAL_INCIDENTS[0]);
+  const FALLBACK_INCIDENT: Incident = {
+    id: 'placeholder',
+    code: 'N/A',
+    title: 'No active incidents',
+    category: 'OTHER',
+    urgency: 'LOW',
+    severityScore: 0,
+    locationName: 'Unknown',
+    country: 'Unknown',
+    region: 'Global',
+    coords: { lat: 0, lng: 0 },
+    timestamp: 'Just now',
+    populationAffected: 0,
+    description: 'Waiting for live incident data...',
+    extractedNeeds: [],
+    requiredSkills: [],
+    assignedVolunteersCount: 0,
+    activeMatchesPending: 0,
+    status: 'CONTAINED',
+    source: 'System'
+  };
+  const [selectedIncident, setSelectedIncident] = useState<Incident>(INITIAL_INCIDENTS[0] || FALLBACK_INCIDENT);
 
 
   // Navigation & Layout State
@@ -361,7 +386,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 text-slate-100">
       {/* Top Application Header */}
       <Header
         stats={stats}
@@ -386,7 +411,7 @@ export default function App() {
         />
 
         {/* Content View Container */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 bg-slate-950/40 flex flex-col">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 bg-slate-900/40 flex flex-col">
           {/* View 1: Overview Dashboard (Split layout) */}
           {activeView === 'dashboard' && (
             <OverviewDashboard
@@ -456,6 +481,34 @@ export default function App() {
                 onSelectIncidentById={handleSelectIncidentById}
                 onSimulateBurst={handleSimulateBurst}
               />
+            </div>
+          )}
+
+          {/* View 6: Predictive Early Warning System */}
+          {activeView === 'early-warning' && (
+            <div className="h-full w-full">
+              <EarlyWarningPanel />
+            </div>
+          )}
+
+          {/* View 7: Disaster Preparedness Playbooks */}
+          {activeView === 'preparedness' && (
+            <div className="h-full w-full">
+              <PreparednessPlan />
+            </div>
+          )}
+
+          {/* View 8: After-Action Reports */}
+          {activeView === 'after-action' && (
+            <div className="h-full w-full">
+              <AfterActionReports incidents={incidents} />
+            </div>
+          )}
+
+          {/* View 9: Recovery Milestone Tracker */}
+          {activeView === 'recovery' && (
+            <div className="h-full w-full">
+              <RecoveryTrackerView incidents={incidents} />
             </div>
           )}
         </main>

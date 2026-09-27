@@ -25,7 +25,7 @@ export function adaptIncident(raw: any): Incident {
       lat: raw.coords?.lat ?? 0,
       lng: raw.coords?.lng ?? 0,
     },
-    timestamp: raw.timestamp ? new Date(raw.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+    timestamp: raw.timestamp ? raw.timestamp : new Date().toISOString(),
     populationAffected: raw.population_affected ?? raw.populationAffected ?? 0,
     description: raw.description || '',
     extractedNeeds: raw.extracted_needs ?? raw.extractedNeeds ?? [],

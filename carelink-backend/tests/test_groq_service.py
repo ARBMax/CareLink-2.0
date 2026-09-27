@@ -4,7 +4,7 @@ Tests NER extraction, severity scoring, and volunteer ranking logic.
 """
 import pytest
 from services.groq_service import GroqProcessingService, EntityBundle
-from services.gemini_service import RawSignalBatch, DisasterSignal
+from services.gemini_service import RawSignalBatch
 from models.incident import GeoCoords, IncidentCategory, UrgencyLevel
 from models.volunteer import Volunteer, ReadinessStatus
 from datetime import datetime, timezone

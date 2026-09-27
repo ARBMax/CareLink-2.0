@@ -7,7 +7,8 @@ import {
   ChevronUp, 
   MapPin, 
   Plane,
-  ArrowRight
+  ArrowRight,
+  Clock
 } from 'lucide-react';
 
 interface GlobeOperationalViewProps {
@@ -37,7 +38,7 @@ export const GlobeOperationalView: React.FC<GlobeOperationalViewProps> = ({
   return (
     <div className="relative w-full h-full flex flex-col gap-3 min-h-[600px]">
       {/* Main 3D Globe Area */}
-      <div className="relative flex-1 w-full h-full rounded-xl overflow-hidden border border-slate-800/80 bg-slate-950">
+      <div className="relative flex-1 w-full h-full rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900">
         <Globe3D
           incidents={incidents}
           volunteers={volunteers}
@@ -50,7 +51,7 @@ export const GlobeOperationalView: React.FC<GlobeOperationalViewProps> = ({
 
         {/* Minimal Floating Drawer Toggle on Left */}
         <div className="absolute top-3 left-3 z-20">
-          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-xl overflow-hidden shadow-lg w-72 max-w-[calc(100vw-2rem)]">
+          <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-xl overflow-hidden shadow-lg w-72 max-w-[calc(100vw-2rem)]">
             <button
               onClick={() => setIsPanelOpen(!isPanelOpen)}
               className="w-full px-3 py-2 flex items-center justify-between text-xs font-mono text-slate-300 hover:bg-slate-800/50 transition-colors"
@@ -63,7 +64,7 @@ export const GlobeOperationalView: React.FC<GlobeOperationalViewProps> = ({
             </button>
 
             {isPanelOpen && (
-              <div className="p-2 border-t border-slate-800/80 bg-slate-950/80">
+              <div className="p-2 border-t border-slate-700/80 bg-slate-900/80">
                 <div className="flex items-center gap-1 mb-2 text-xs font-mono">
                   <button
                     onClick={() => setActiveSidePanel('INCIDENTS')}
@@ -98,7 +99,7 @@ export const GlobeOperationalView: React.FC<GlobeOperationalViewProps> = ({
                         className={`p-2 rounded-lg cursor-pointer text-xs border transition-colors ${
                           inc.id === selectedIncident.id
                             ? 'bg-slate-800/90 border-teal-500/50 text-slate-100'
-                            : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-850'
+                            : 'bg-slate-800/40 border-slate-700 text-slate-300 hover:bg-slate-850'
                         }`}
                       >
                         <div className="flex items-center justify-between text-[11px] font-mono mb-0.5">
@@ -109,13 +110,25 @@ export const GlobeOperationalView: React.FC<GlobeOperationalViewProps> = ({
                         <div className="text-[10px] text-slate-400 truncate mt-0.5">
                           {inc.locationName}, {inc.country}
                         </div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{inc.timestamp && !isNaN(new Date(inc.timestamp).getTime()) 
+                            ? new Date(inc.timestamp).toLocaleString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) 
+                            : String(inc.timestamp || 'No Time Provided')}</span>
+                        </div>
                       </div>
                     ))
                   ) : (
                     dispatchArcs.map((arc) => (
                       <div
                         key={arc.id}
-                        className="p-2 rounded-lg bg-slate-900/40 border border-slate-800 text-xs"
+                        className="p-2 rounded-lg bg-slate-800/40 border border-slate-700 text-xs"
                       >
                         <div className="flex items-center justify-between text-[10px] font-mono text-sky-400 mb-1">
                           <span className="flex items-center gap-1 font-semibold">
