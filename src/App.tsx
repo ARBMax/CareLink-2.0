@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { StartupSequence } from './components/startup/StartupSequence';
 import { 
   Incident, 
   Volunteer, 
@@ -42,6 +43,14 @@ import { AfterActionReports } from './components/after-action/AfterActionReports
 import { RecoveryTrackerView } from './components/recovery/RecoveryTracker';
 
 export default function App() {
+  const [startupDone, setStartupDone] = useState(
+    () => sessionStorage.getItem('cl_booted') === '1'
+  );
+
+  const handleStartupComplete = useCallback(() => {
+    sessionStorage.setItem('cl_booted', '1');
+    setStartupDone(true);
+  }, []);
   // Application State
   const [incidents, setIncidents] = useState<Incident[]>(INITIAL_INCIDENTS);
   const [volunteers, setVolunteers] = useState<Volunteer[]>(INITIAL_VOLUNTEERS);
@@ -386,7 +395,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 text-slate-100">
+    <>
+      {!startupDone && <StartupSequence onComplete={handleStartupComplete} />}
+      <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-900 text-slate-100">
       {/* Top Application Header */}
       <Header
         stats={stats}
@@ -523,5 +534,6 @@ export default function App() {
         onSelectIncidentById={handleSelectIncidentById}
       />
     </div>
+    </>
   );
 }
