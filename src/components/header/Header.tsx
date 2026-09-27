@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
         <img 
           src="/logo.png" 
           alt="CareLink Logo" 
-          className="h-11 object-contain transition-transform group-hover:scale-105"
+          className="h-14 object-contain transition-transform group-hover:scale-105"
           style={{ filter: 'invert(1) hue-rotate(180deg) brightness(1.2)' }} 
         />
       </div>
