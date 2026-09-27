@@ -26,9 +26,15 @@ export function useCareLinkWebSocket(handlers: WSHandlers) {
 
   const connect = useCallback(() => {
     // In dev, use proxy ws:// or direct ws://localhost:8001/ws
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname === 'localhost' ? 'localhost:8001' : window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    // In production, use VITE_WS_URL pointing to the backend service
+    let wsUrl: string;
+    if (import.meta.env.VITE_WS_URL) {
+      wsUrl = `${import.meta.env.VITE_WS_URL}/ws`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname === 'localhost' ? 'localhost:8001' : window.location.host;
+      wsUrl = `${protocol}//${host}/ws`;
+    }
 
     try {
       const ws = new WebSocket(wsUrl);
