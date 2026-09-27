@@ -216,7 +216,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
 
                       <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3 text-slate-500" />
-                        <span>{inc.locationName}, {inc.country}</span>
+                        <span>{inc.locationName}{inc.country && inc.country !== inc.locationName ? `, ${inc.country}` : ''}</span>
                       </div>
 
 
