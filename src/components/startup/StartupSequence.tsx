@@ -230,6 +230,19 @@ export const StartupSequence: React.FC<StartupSequenceProps> = ({ onComplete }) 
           <p className="text-center text-[9px] font-mono text-slate-700 mt-3 tracking-widest">
             CARELINK AUTONOMOUS INTELLIGENCE — SECURE BOOT
           </p>
+
+          {/* Backend cold-start notice */}
+          <div
+            className="mt-4 flex items-start gap-2 px-3 py-2 rounded border border-amber-500/20 bg-amber-500/5"
+            style={{ animation: 'slideUp 0.6s ease 1.2s both' }}
+          >
+            <span className="text-amber-500/70 text-[11px] mt-px shrink-0">⚠</span>
+            <p className="text-[9px] font-mono text-amber-600/60 leading-relaxed">
+              Backend hosted on Render free tier — may take{' '}
+              <span className="text-amber-500/80">15–30 seconds</span> to wake up on
+              first load. Live data will stream in automatically once connected.
+            </p>
+          </div>
         </div>
       </div>
 
