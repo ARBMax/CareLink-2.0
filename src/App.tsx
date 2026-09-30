@@ -61,12 +61,12 @@ export default function App() {
     id: 'placeholder',
     code: 'N/A',
     title: 'No active incidents',
-    category: 'OTHER',
+    category: 'FLOOD',
     urgency: 'LOW',
     severityScore: 0,
     locationName: 'Unknown',
     country: 'Unknown',
-    region: 'Global',
+    region: 'Asia-Pacific',
     coords: { lat: 0, lng: 0 },
     timestamp: 'Just now',
     populationAffected: 0,
@@ -76,7 +76,7 @@ export default function App() {
     assignedVolunteersCount: 0,
     activeMatchesPending: 0,
     status: 'CONTAINED',
-    source: 'System'
+    source: 'Satellite Telemetry'
   };
   const [selectedIncident, setSelectedIncident] = useState<Incident>(INITIAL_INCIDENTS[0] || FALLBACK_INCIDENT);
 

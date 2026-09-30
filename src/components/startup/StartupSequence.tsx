@@ -21,7 +21,7 @@ export const StartupSequence: React.FC<StartupSequenceProps> = ({ onComplete }) 
   const [progress, setProgress] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
   const [scanLine, setScanLine] = useState(0);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number>(0);
   const startRef = useRef<number>(0);
 
   // Scan line animation

@@ -306,7 +306,7 @@ class EarlyWarningService:
                 model="qwen/qwen3.8-27b",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=512,
+                max_tokens=280,  # Keep well under 1000 OTPM rate limit
             )
             elapsed_ms = int((time.monotonic() - start) * 1000)
             raw_content = response.choices[0].message.content
@@ -406,17 +406,17 @@ class EarlyWarningService:
                 return self._cache
 
             # Score each alert — Groq if available, keyword fallback otherwise
-            # Limit to top 10 to avoid rate limits
-            raw_alerts = raw_alerts[:10]
+            # Limit to top 6 to stay within Groq free tier rate limits
+            raw_alerts = raw_alerts[:6]
             alerts: list[RiskAlert] = []
 
             if self._groq:
-                # Rate limit: process with 2s gaps to avoid Groq 429
+                # Rate limit: 4s gaps — keeps output tokens well under 1000/min
                 for raw in raw_alerts:
                     result = await self._score_with_groq(raw)
                     if result:
                         alerts.append(result)
-                    await asyncio.sleep(1.5)
+                    await asyncio.sleep(4.0)
             else:
                 alerts = [self._keyword_score_alert(r) for r in raw_alerts]
 
