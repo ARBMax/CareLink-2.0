@@ -15,6 +15,7 @@ from core.firebase import get_db, COLLECTION_TELEMETRY_LOGS
 from core.websocket_manager import ws_manager, WSEvent
 from routers.stats import get_kpis
 from scrapers.news_scraper import NewsScraper
+from services.early_warning_service import get_early_warning_service
 
 scheduler = AsyncIOScheduler()
 _news_scraper = NewsScraper()
@@ -40,6 +41,16 @@ async def poll_news_feeds_job():
         await _news_scraper.poll_and_ingest()
     except Exception as exc:
         logger.warning("Feed poll job failed: {}", exc)
+
+
+async def refresh_early_warning_job():
+    """Refresh early warning risk alerts from GDACS + NewsAPI every 10 minutes."""
+    try:
+        svc = get_early_warning_service()
+        alerts = await svc.refresh_alerts()
+        logger.info("⚡ EW refresh: {} risk alerts updated", len(alerts))
+    except Exception as exc:
+        logger.warning("Early warning refresh job failed: {}", exc)
 
 
 async def purge_expired_telemetry():
@@ -90,8 +101,15 @@ def start_scheduler():
             id="telemetry_purge",
             replace_existing=True,
         )
+        # Every 10 minutes: refresh early warning risk alerts
+        scheduler.add_job(
+            refresh_early_warning_job,
+            trigger=IntervalTrigger(minutes=10),
+            id="early_warning_refresh",
+            replace_existing=True,
+        )
         scheduler.start()
-        logger.info("⏰ Background scheduler started (heartbeat, feed poller, TTL purge)")
+        logger.info("⏰ Background scheduler started (heartbeat, feed poller, EW refresh, TTL purge)")
 
 
 def stop_scheduler():

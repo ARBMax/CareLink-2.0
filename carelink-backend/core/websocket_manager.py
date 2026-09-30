@@ -114,4 +114,5 @@ class WSEvent:
     STATS_UPDATE      = "STATS_UPDATE"
     PIPELINE_STATUS   = "PIPELINE_STATUS"   # Gemini/Groq processing progress
     MATCH_FOUND       = "MATCH_FOUND"
+    EARLY_WARNING_UPDATE = "EARLY_WARNING_UPDATE"  # Predictive risk alert refresh
 

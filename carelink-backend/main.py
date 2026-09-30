@@ -11,7 +11,7 @@ import sys
 from core.config import get_settings
 from core.firebase import init_firebase
 from scheduler.jobs import start_scheduler, stop_scheduler
-from routers import health, incidents, volunteers, dispatch, ingest, match, stats, websocket
+from routers import health, incidents, volunteers, dispatch, ingest, match, stats, websocket, early_warning
 
 
 # Setup structured logging
@@ -47,6 +47,11 @@ async def lifespan(app: FastAPI):
 
     # Start background scheduler jobs
     start_scheduler()
+
+    # Trigger initial early warning feed fetch in the background
+    import asyncio
+    from services.early_warning_service import get_early_warning_service
+    asyncio.create_task(get_early_warning_service().refresh_alerts())
 
     yield
 
@@ -87,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(ingest.router, prefix="/api")
     app.include_router(match.router, prefix="/api")
     app.include_router(stats.router, prefix="/api")
+    app.include_router(early_warning.router, prefix="/api")
 
     # Mount WebSocket Gateway
     app.include_router(websocket.router)

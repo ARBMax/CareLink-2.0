@@ -229,3 +229,21 @@ export async function ingestFieldReportText(posts: string[], source: string = 'W
   if (!res.ok) throw new Error(`Ingest failed: ${res.statusText}`);
   return await res.json();
 }
+
+export async function fetchEarlyWarningAlerts(forceRefresh: boolean = false): Promise<any[]> {
+  const url = `${API_BASE}/early-warning/alerts${forceRefresh ? '?force_refresh=true' : ''}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new Error(`EW fetch failed: ${res.statusText}`);
+  const data = await res.json();
+  return data.alerts || [];
+}
+
+export async function triggerEarlyWarningRefresh(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/early-warning/refresh`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!res.ok) throw new Error(`EW refresh failed: ${res.statusText}`);
+  const data = await res.json();
+  return data.alerts || [];
+}
