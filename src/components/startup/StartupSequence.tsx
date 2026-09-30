@@ -238,9 +238,8 @@ export const StartupSequence: React.FC<StartupSequenceProps> = ({ onComplete }) 
           >
             <span className="text-amber-500/70 text-[11px] mt-px shrink-0">⚠</span>
             <p className="text-[9px] font-mono text-amber-600/60 leading-relaxed">
-              Backend hosted on Render free tier — may take{' '}
-              <span className="text-amber-500/80">15–30 seconds</span> to wake up on
-              first load. Live data will stream in automatically once connected.
+              Backend may take a few seconds to boot up on first load.{' '}
+              Live data will stream in automatically once connected.
             </p>
           </div>
         </div>
